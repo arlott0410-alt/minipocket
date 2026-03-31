@@ -30,7 +30,7 @@ export default function Transfer() {
   const { t } = useTranslation();
   const [wallets, setWallets] = useState([]);
   const [ownedWallets, setOwnedWallets] = useState([]);
-  const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", exchange_rate: "1", fee: "0", note: "" });
+  const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", fee: "0", note: "" });
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [shareWalletId, setShareWalletId] = useState("");
   const [sharePermission, setSharePermission] = useState("viewer");
@@ -77,15 +77,24 @@ export default function Transfer() {
     [wallets, form.from_wallet_id],
   );
   const isCrossCurrency = fromWallet && toWallet && fromWallet.currency !== toWallet.currency;
-  const toAmount = isCrossCurrency ? Number(Number(form.from_amount || 0) * Number(form.exchange_rate || 1)).toFixed(4) : Number(form.from_amount || 0).toFixed(4);
+  const computedRate = Number(form.from_amount || 0) > 0 && Number(form.to_amount || 0) > 0
+    ? Number(form.to_amount) / Number(form.from_amount)
+    : 0;
   const invalidSameWallet = !!form.from_wallet_id && !!form.to_wallet_id && form.from_wallet_id === form.to_wallet_id;
-  const transferDisabled = saving || !form.from_wallet_id || !form.to_wallet_id || !form.from_amount || invalidSameWallet;
+  const transferDisabled = saving || !form.from_wallet_id || !form.to_wallet_id || !form.from_amount || !form.to_amount || invalidSameWallet;
 
   useEffect(() => {
     if (form.from_wallet_id && form.to_wallet_id && form.from_wallet_id === form.to_wallet_id) {
       setForm((s) => ({ ...s, to_wallet_id: "" }));
     }
   }, [form.from_wallet_id, form.to_wallet_id]);
+
+  useEffect(() => {
+    if (!fromWallet || !toWallet) return;
+    if (fromWallet.currency === toWallet.currency) {
+      setForm((s) => ({ ...s, to_amount: s.from_amount }));
+    }
+  }, [fromWallet?.currency, toWallet?.currency, form.from_amount]);
 
   const openShareDetail = async (walletId) => {
     setSaving(true);
@@ -103,7 +112,7 @@ export default function Transfer() {
 
   const submit = async () => {
     setError("");
-    if (!form.from_wallet_id || !form.to_wallet_id || !form.from_amount) {
+    if (!form.from_wallet_id || !form.to_wallet_id || !form.from_amount || !form.to_amount) {
       setError(t("common.fill_all"));
       return;
     }
@@ -113,8 +122,14 @@ export default function Transfer() {
     }
     try {
       setSaving(true);
-      await api.createTransfer({ ...form, from_amount: Number(form.from_amount), to_amount: Number(toAmount), exchange_rate: isCrossCurrency ? Number(form.exchange_rate) : null, fee: Number(form.fee || 0) });
-      setForm({ from_wallet_id: "", to_wallet_id: "", from_amount: "", exchange_rate: "1", fee: "0", note: "" });
+      await api.createTransfer({
+        ...form,
+        from_amount: Number(form.from_amount),
+        to_amount: Number(form.to_amount),
+        exchange_rate: isCrossCurrency ? Number(computedRate.toFixed(8)) : 1,
+        fee: Number(form.fee || 0),
+      });
+      setForm({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", fee: "0", note: "" });
       await loadAll();
     } catch (e) {
       setError(e.error === "insufficient_balance" ? t("transfer.insufficient") : t("common.error"));
@@ -251,20 +266,32 @@ export default function Transfer() {
               <option value="">{t("transfer.from")}</option>
               {wallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
-            <p className="label">{t("transfer.amount")}</p>
-            <Input type="number" value={form.from_amount} onChange={(e) => setForm((s) => ({ ...s, from_amount: e.target.value }))} placeholder={t("transfer.amount")} />
+            <p className="label">{t("transfer.source_amount")} ({fromWallet?.currency || "-"})</p>
+            <Input type="number" value={form.from_amount} onChange={(e) => setForm((s) => ({ ...s, from_amount: e.target.value }))} placeholder={t("transfer.source_amount")} />
             <p className="label">{t("transfer.to")}</p>
             <Select value={form.to_wallet_id} onChange={(e) => setForm((s) => ({ ...s, to_wallet_id: e.target.value }))}>
               <option value="">{t("transfer.to")}</option>
               {destinationWallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
+            <p className="label">{t("transfer.destination_amount")} ({toWallet?.currency || "-"})</p>
+            <Input
+              type="number"
+              value={form.to_amount}
+              onChange={(e) => setForm((s) => ({ ...s, to_amount: e.target.value }))}
+              placeholder={t("transfer.destination_amount")}
+              disabled={!!fromWallet && !!toWallet && fromWallet.currency === toWallet.currency}
+            />
             {invalidSameWallet ? (
               <p className="rounded-xl border border-rose-500/40 bg-rose-900/20 p-2 text-xs text-rose-200">{t("transfer.same_wallet_error")}</p>
             ) : null}
-            {isCrossCurrency && <Input type="number" value={form.exchange_rate} onChange={(e) => setForm((s) => ({ ...s, exchange_rate: e.target.value }))} placeholder={t("transfer.rate")} />}
+            {isCrossCurrency ? (
+              <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">
+                {t("transfer.rate")}: 1 {fromWallet?.currency || ""} = {computedRate ? computedRate.toFixed(6) : "0"} {toWallet?.currency || ""}
+              </p>
+            ) : null}
             <Input type="number" value={form.fee} onChange={(e) => setForm((s) => ({ ...s, fee: e.target.value }))} placeholder={t("transfer.fee")} />
             <Input value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} placeholder={t("common.note")} />
-            <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{Number(toAmount).toLocaleString()} {toWallet?.currency || ""}</span></p>
+            <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{Number(form.to_amount || 0).toLocaleString()} {toWallet?.currency || ""}</span></p>
             <Button onClick={submit} className="w-full" disabled={transferDisabled}>{saving ? t("common.loading") : t("transfer.confirm")}</Button>
           </Card>
 
