@@ -4,6 +4,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Skeleton from "../components/ui/Skeleton";
+import Modal from "../components/ui/Modal";
 import { useTranslation } from "react-i18next";
 
 const BRAND_PRESETS = [
@@ -49,6 +50,15 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editCategoryForm, setEditCategoryForm] = useState({
+    name_lo: "",
+    name_th: "",
+    name_en: "",
+    type: "both",
+    emoji: "📝",
+    sort_order: 0,
+  });
 
   const formatSettingLabel = (key) => t(`admin.settings_keys.${key}`, { defaultValue: key });
 
@@ -151,6 +161,40 @@ export default function Admin() {
     setError("");
     try {
       await api.adminUpdateCategory(cat.id, { is_active: !cat.is_active });
+      await loadDashboard();
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditCategory = (cat) => {
+    setEditingCategory(cat);
+    setEditCategoryForm({
+      name_lo: cat.name_lo || "",
+      name_th: cat.name_th || cat.name_en || "",
+      name_en: cat.name_en || "",
+      type: cat.type || "both",
+      emoji: cat.emoji || "📝",
+      sort_order: Number(cat.sort_order || 0),
+    });
+  };
+
+  const saveEditCategory = async () => {
+    if (!editingCategory) return;
+    if (!editCategoryForm.name_lo || !editCategoryForm.name_th || !editCategoryForm.name_en) {
+      setError(t("common.fill_all"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await api.adminUpdateCategory(editingCategory.id, {
+        ...editCategoryForm,
+        sort_order: Number(editCategoryForm.sort_order || 0),
+      });
+      setEditingCategory(null);
       await loadDashboard();
     } catch {
       setError(t("common.error"));
@@ -306,12 +350,17 @@ export default function Admin() {
                 {categories.map((cat) => (
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_th || "-"} / {cat.name_en}</p>
+                      <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_th || cat.name_en} / {cat.name_en}</p>
                       <p className="text-xs text-amber-200/70">{t("admin.categories.type_label")} {cat.type}</p>
                     </div>
-                    <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>
-                      {cat.is_active ? t("admin.categories.disable") : t("admin.categories.enable")}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" disabled={saving} onClick={() => openEditCategory(cat)}>
+                        {t("admin.categories.edit")}
+                      </Button>
+                      <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>
+                        {cat.is_active ? t("admin.categories.disable") : t("admin.categories.enable")}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -338,6 +387,28 @@ export default function Admin() {
           )}
         </>
       )}
+      <Modal open={!!editingCategory} onClose={() => setEditingCategory(null)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-amber-100">{t("admin.categories.edit_title")}</h3>
+          <Input placeholder={t("admin.categories.name_lo")} value={editCategoryForm.name_lo} onChange={(e) => setEditCategoryForm((s) => ({ ...s, name_lo: e.target.value }))} />
+          <Input placeholder={t("admin.categories.name_th")} value={editCategoryForm.name_th} onChange={(e) => setEditCategoryForm((s) => ({ ...s, name_th: e.target.value }))} />
+          <Input placeholder={t("admin.categories.name_en")} value={editCategoryForm.name_en} onChange={(e) => setEditCategoryForm((s) => ({ ...s, name_en: e.target.value }))} />
+          <Input placeholder={t("admin.categories.emoji")} value={editCategoryForm.emoji} onChange={(e) => setEditCategoryForm((s) => ({ ...s, emoji: e.target.value }))} />
+          <select
+            value={editCategoryForm.type}
+            onChange={(e) => setEditCategoryForm((s) => ({ ...s, type: e.target.value }))}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option value="income">{t("transaction.type_income")}</option>
+            <option value="expense">{t("transaction.type_expense")}</option>
+            <option value="both">{t("admin.categories.type_both")}</option>
+          </select>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setEditingCategory(null)}>{t("common.cancel")}</Button>
+            <Button className="flex-1" disabled={saving} onClick={saveEditCategory}>{saving ? t("admin.saving") : t("common.save")}</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
