@@ -151,7 +151,7 @@ export default function Admin() {
 
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">{t("admin.title")}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("admin.title")}</h1>
 
       {!adminAuthed ? (
         <Card className="space-y-3">
@@ -258,9 +258,11 @@ export default function Admin() {
               {users.map((u) => (
                 <Card key={u.id} className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{u.first_name} {u.last_name || ""}</p>
-                    <p className="text-xs text-slate-500">@{u.username || u.telegram_id}</p>
-                    {u.paid_until && <p className="text-xs text-indigo-500">paid until: {new Date(u.paid_until).toLocaleDateString()}</p>}
+                    <p className="text-sm font-semibold text-amber-100">{u.first_name} {u.last_name || ""}</p>
+                    <p className="text-xs text-amber-200/70">@{u.username || u.telegram_id}</p>
+                    {u.paid_until && (
+                      <p className="text-xs text-amber-300/90">paid until: {new Date(u.paid_until).toLocaleDateString()}</p>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
                     <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 30)}>+1M</Button>
@@ -273,7 +275,7 @@ export default function Admin() {
             </div>
           ) : tab === "categories" ? (
             <Card className="space-y-4">
-              <p className="section-title">Income/Expense Categories</p>
+              <p className="section-title text-amber-100">Income/Expense Categories</p>
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder="name_lo" value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
                 <Input placeholder="name_en" value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
@@ -293,8 +295,8 @@ export default function Admin() {
                 {categories.map((cat) => (
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cat.emoji} {cat.name_lo} / {cat.name_en}</p>
-                      <p className="text-xs text-slate-500">type: {cat.type}</p>
+                      <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_en}</p>
+                      <p className="text-xs text-amber-200/70">type: {cat.type}</p>
                     </div>
                     <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>
                       {cat.is_active ? "Disable" : "Enable"}
@@ -305,18 +307,18 @@ export default function Admin() {
             </Card>
           ) : (
             <Card className="space-y-3">
-              <p className="section-title">Admin Audit Logs</p>
+              <p className="section-title text-amber-100">Admin Audit Logs</p>
               {logs.length === 0 ? (
-                <p className="text-sm text-slate-500">No logs available.</p>
+                <p className="text-sm text-amber-200/70">No logs available.</p>
               ) : (
                 <div className="space-y-2">
                   {logs.map((log) => (
                     <div key={log.id} className="surface-muted p-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{log.action}</p>
-                        <p className="text-xs text-slate-500">{new Date(log.created_at).toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-amber-100">{log.action}</p>
+                        <p className="text-xs text-amber-200/70">{new Date(log.created_at).toLocaleString()}</p>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">{log.admin_email}</p>
+                      <p className="mt-1 text-xs text-amber-200/70">{log.admin_email}</p>
                     </div>
                   ))}
                 </div>
