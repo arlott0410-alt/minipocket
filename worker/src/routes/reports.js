@@ -6,14 +6,17 @@ router.get("/summary", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
   const month = u.searchParams.get("month") || new Date().toISOString().slice(0, 7);
+  const walletId = u.searchParams.get("wallet_id");
   const from = `${month}-01`;
   const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0).toISOString().slice(0, 10);
-  const { data: txs } = await supabase
+  let q = supabase
     .from("transactions")
     .select("type, amount")
     .eq("user_id", user.id)
     .gte("transaction_date", from)
     .lte("transaction_date", to);
+  if (walletId) q = q.eq("wallet_id", walletId);
+  const { data: txs } = await q;
   const income = (txs || []).filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
   const expense = (txs || []).filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
   return Response.json({ month, income, expense, net: income - expense });
@@ -23,6 +26,7 @@ router.get("/chart", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
   const months = Number(u.searchParams.get("months") || 6);
+  const walletId = u.searchParams.get("wallet_id");
   const start = new Date();
   start.setMonth(start.getMonth() - (months - 1));
   start.setDate(1);
@@ -30,12 +34,14 @@ router.get("/chart", async (req) => {
   const end = new Date();
   const to = new Date(end.getFullYear(), end.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  const { data: txs } = await supabase
+  let q = supabase
     .from("transactions")
     .select("type, amount, transaction_date")
     .eq("user_id", user.id)
     .gte("transaction_date", from)
     .lte("transaction_date", to);
+  if (walletId) q = q.eq("wallet_id", walletId);
+  const { data: txs } = await q;
 
   const monthMap = {};
   for (let i = months - 1; i >= 0; i -= 1) {
@@ -61,15 +67,18 @@ router.get("/by-category", async (req) => {
   const u = new URL(req.url);
   const month = u.searchParams.get("month") || new Date().toISOString().slice(0, 7);
   const type = u.searchParams.get("type") || "expense";
+  const walletId = u.searchParams.get("wallet_id");
   const from = `${month}-01`;
   const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0).toISOString().slice(0, 10);
-  const { data: txs } = await supabase
+  let q = supabase
     .from("transactions")
     .select("amount, category:categories(name_lo,name_en,emoji)")
     .eq("user_id", user.id)
     .eq("type", type)
     .gte("transaction_date", from)
     .lte("transaction_date", to);
+  if (walletId) q = q.eq("wallet_id", walletId);
+  const { data: txs } = await q;
   const grouped = {};
   for (const t of txs || []) {
     const key = t.category?.name_en || "Other";

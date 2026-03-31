@@ -6,6 +6,7 @@ import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Card from "../components/ui/Card";
 import Skeleton from "../components/ui/Skeleton";
+import WalletCard from "../components/wallet/WalletCard";
 
 export default function Transfer() {
   const { t } = useTranslation();
@@ -46,7 +47,15 @@ export default function Transfer() {
   };
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">{t("nav.transfer")}</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-amber-100">โยกเงินระหว่างกระเป๋า</h1>
+      {!loadingWallets && (
+        <div className="space-y-2">
+          <h2 className="section-title">กระเป๋าของฉัน</h2>
+          <div className="space-y-2">
+            {wallets.map((w) => <WalletCard key={w.id} wallet={w} />)}
+          </div>
+        </div>
+      )}
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{error}</div>}
       {loadingWallets ? (
         <Skeleton className="h-56" />

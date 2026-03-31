@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
-import WalletCard from "../components/wallet/WalletCard";
 import SummaryCards from "../components/dashboard/SummaryCards";
 import TransactionItem from "../components/transaction/TransactionItem";
 import EmptyState from "../components/ui/EmptyState";
@@ -38,21 +37,11 @@ export default function Home() {
       </div>
       <SummaryCards wallets={wallets} loading={loading} />
       <div className="flex justify-between items-center">
-        <h2 className="section-title">{t("wallet.my_wallets")}</h2>
+        <h2 className="section-title">{t("transaction.recent")}</h2>
         <Button onClick={() => setShowCreateWallet(true)} size="sm" className="flex items-center gap-1">
           <Plus size={15} /> {t("wallet.add")}
         </Button>
       </div>
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
-      ) : wallets.length === 0 ? (
-        <EmptyState icon="💰" title={t("wallet.empty_title")} desc={t("wallet.empty_desc")} action={{ label: t("wallet.add"), onClick: () => setShowCreateWallet(true) }} />
-      ) : (
-        <div className="space-y-3">{wallets.map((w) => <WalletCard key={w.id} wallet={w} onClick={() => navigate(`/wallet/${w.id}`)} />)}</div>
-      )}
       <div className="surface-card divide-y divide-amber-500/10">
         {recentTxs.length ? recentTxs.map((tx) => <TransactionItem key={tx.id} transaction={tx} />) : <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />}
       </div>
