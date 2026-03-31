@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { formatAmountInput, parseAmountInput, precisionByCurrency } from "../lib/amount";
+import { getCategoryDisplayName } from "../lib/category";
 import Card from "../components/ui/Card";
 import Select from "../components/ui/Select";
 import Input from "../components/ui/Input";
@@ -10,7 +11,7 @@ import Button from "../components/ui/Button";
 import Skeleton from "../components/ui/Skeleton";
 
 export default function AddTransaction() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState({ wallet_id: "", type: "expense", amount: "", note: "", category_id: "" });
   const [wallets, setWallets] = useState([]);
@@ -68,7 +69,7 @@ export default function AddTransaction() {
           </Select>
           <Select value={form.category_id} onChange={(e) => setForm((s) => ({ ...s, category_id: e.target.value }))}>
             <option value="">{t("transaction.category_none")}</option>
-            {filteredCategories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name_lo || c.name_en}</option>)}
+            {filteredCategories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {getCategoryDisplayName(c, i18n.language)}</option>)}
           </Select>
           <Input
             type="text"

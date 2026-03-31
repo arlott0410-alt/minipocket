@@ -38,6 +38,7 @@ export default function Admin() {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState({
     name_lo: "",
+    name_th: "",
     name_en: "",
     type: "both",
     emoji: "📝",
@@ -125,7 +126,7 @@ export default function Admin() {
   };
 
   const createCategory = async () => {
-    if (!newCategory.name_lo || !newCategory.name_en) {
+    if (!newCategory.name_lo || !newCategory.name_th || !newCategory.name_en) {
       setError(t("common.fill_all"));
       return;
     }
@@ -136,7 +137,7 @@ export default function Admin() {
         ...newCategory,
         sort_order: Number(newCategory.sort_order || 0),
       });
-      setNewCategory({ name_lo: "", name_en: "", type: "both", emoji: "📝", sort_order: 0 });
+      setNewCategory({ name_lo: "", name_th: "", name_en: "", type: "both", emoji: "📝", sort_order: 0 });
       await loadDashboard();
     } catch {
       setError(t("common.error"));
@@ -287,6 +288,7 @@ export default function Admin() {
               <p className="section-title text-amber-100">{t("admin.categories.title")}</p>
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder={t("admin.categories.name_lo")} value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
+                <Input placeholder={t("admin.categories.name_th")} value={newCategory.name_th} onChange={(e) => setNewCategory((s) => ({ ...s, name_th: e.target.value }))} />
                 <Input placeholder={t("admin.categories.name_en")} value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
                 <Input placeholder={t("admin.categories.emoji")} value={newCategory.emoji} onChange={(e) => setNewCategory((s) => ({ ...s, emoji: e.target.value }))} />
                 <select
@@ -304,7 +306,7 @@ export default function Admin() {
                 {categories.map((cat) => (
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_en}</p>
+                      <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_th || "-"} / {cat.name_en}</p>
                       <p className="text-xs text-amber-200/70">{t("admin.categories.type_label")} {cat.type}</p>
                     </div>
                     <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>

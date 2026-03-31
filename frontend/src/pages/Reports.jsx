@@ -6,6 +6,7 @@ import Skeleton from "../components/ui/Skeleton";
 import { useWallets } from "../hooks/useWallets";
 import html2canvas from "html2canvas";
 import Button from "../components/ui/Button";
+import { getCategoryDisplayName } from "../lib/category";
 
 const COLORS = ["#fbbf24", "#f59e0b", "#f97316", "#eab308", "#fcd34d", "#fca5a5"];
 
@@ -125,7 +126,7 @@ export default function Reports() {
         <div className="surface-card h-64 p-3">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={activeCategories} dataKey="total" nameKey={i18n.language === "lo" ? "name_lo" : "name_en"} innerRadius={45} outerRadius={70}>
+              <Pie data={activeCategories.map((c) => ({ ...c, display_name: getCategoryDisplayName(c, i18n.language) }))} dataKey="total" nameKey="display_name" innerRadius={45} outerRadius={70}>
                 {activeCategories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v) => Number(v).toLocaleString()} />

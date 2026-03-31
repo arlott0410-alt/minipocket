@@ -173,7 +173,7 @@ router.get("/by-category", async (req) => {
   if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
   let q = supabase
     .from("transactions")
-    .select("amount, category:categories(name_lo,name_en,emoji), wallet:wallets(currency)")
+    .select("amount, category:categories(name_lo,name_en,name_th,emoji), wallet:wallets(currency)")
     .in("wallet_id", walletIds)
     .eq("type", type)
     .gte("transaction_date", range.from)
@@ -186,12 +186,24 @@ router.get("/by-category", async (req) => {
     const key = t.category?.name_en || "Other";
     const currency = t.wallet?.currency || "N/A";
     if (!grouped[key]) {
-      grouped[key] = { name_en: key, name_lo: t.category?.name_lo || "ອື່ນໆ", emoji: t.category?.emoji || "📝", total: 0 };
+      grouped[key] = {
+        name_en: key,
+        name_lo: t.category?.name_lo || "ອື່ນໆ",
+        name_th: t.category?.name_th || t.category?.name_en || "Other",
+        emoji: t.category?.emoji || "📝",
+        total: 0,
+      };
     }
     grouped[key].total += Number(t.amount);
     if (!groupedByCurrency[currency]) groupedByCurrency[currency] = {};
     if (!groupedByCurrency[currency][key]) {
-      groupedByCurrency[currency][key] = { name_en: key, name_lo: t.category?.name_lo || "ອື່ນໆ", emoji: t.category?.emoji || "📝", total: 0 };
+      groupedByCurrency[currency][key] = {
+        name_en: key,
+        name_lo: t.category?.name_lo || "ອື່ນໆ",
+        name_th: t.category?.name_th || t.category?.name_en || "Other",
+        emoji: t.category?.emoji || "📝",
+        total: 0,
+      };
     }
     groupedByCurrency[currency][key].total += Number(t.amount);
   }

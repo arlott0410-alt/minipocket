@@ -51,7 +51,7 @@ router.get("/", async (req) => {
 
   let q = supabase
     .from("transactions")
-    .select("*, category:categories(name_lo,name_en,emoji), wallet:wallets(name,currency,color)", { count: "exact" })
+    .select("*, category:categories(name_lo,name_en,name_th,emoji), wallet:wallets(name,currency,color)", { count: "exact" })
     .in("wallet_id", walletIds)
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false })
