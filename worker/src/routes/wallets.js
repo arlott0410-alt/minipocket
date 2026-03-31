@@ -4,20 +4,38 @@ const router = Router({ base: "/api/wallets" });
 
 router.get("/", async (req) => {
   const { supabase, user } = req;
-  const { data: owned } = await supabase
+  const { data: owned, error: ownedError } = await supabase
     .from("wallets")
-    .select("*, owner:users(first_name,username)")
+    .select("*")
     .eq("owner_id", user.id)
     .eq("is_archived", false)
     .order("created_at");
+  if (ownedError) return Response.json({ error: ownedError.message }, { status: 400 });
 
-  const { data: memberRows } = await supabase
+  const { data: memberRows, error: membersError } = await supabase
     .from("wallet_members")
-    .select("permission, wallet:wallets(*, owner:users(first_name,username))")
+    .select("permission, wallet_id")
     .eq("user_id", user.id);
-  const shared = (memberRows || [])
-    .filter((m) => m.wallet && !m.wallet.is_archived)
-    .map((m) => ({ ...m.wallet, permission: m.permission, is_shared: true }));
+  if (membersError) return Response.json({ error: membersError.message }, { status: 400 });
+
+  const sharedWalletIds = [...new Set((memberRows || []).map((m) => m.wallet_id).filter(Boolean))];
+  let shared = [];
+  if (sharedWalletIds.length) {
+    const { data: sharedWallets, error: sharedError } = await supabase
+      .from("wallets")
+      .select("*")
+      .in("id", sharedWalletIds)
+      .eq("is_archived", false);
+    if (sharedError) return Response.json({ error: sharedError.message }, { status: 400 });
+
+    const memberMap = Object.fromEntries((memberRows || []).map((m) => [m.wallet_id, m.permission]));
+    shared = (sharedWallets || []).map((w) => ({
+      ...w,
+      permission: memberMap[w.id] || "viewer",
+      is_shared: true,
+    }));
+  }
+
   return Response.json({ owned: owned || [], shared });
 });
 
@@ -36,6 +54,14 @@ router.post("/", async (req) => {
     .eq("owner_id", user.id)
     .eq("is_archived", false);
   if ((count || 0) >= maxWallets) return Response.json({ error: "wallet_limit_reached", maxWallets }, { status: 403 });
+
+  const { data: currency, error: currencyError } = await supabase
+    .from("currencies")
+    .select("code")
+    .eq("code", body.currency)
+    .eq("is_active", true)
+    .single();
+  if (currencyError || !currency) return Response.json({ error: "unsupported_currency" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("wallets")
