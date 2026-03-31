@@ -8,13 +8,15 @@ import reportsRouter from "./routes/reports.js";
 import usersRouter from "./routes/users.js";
 import adminRouter from "./routes/admin.js";
 
-const { preflight, corsify } = cors({
-  origin: "*",
-  allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowHeaders: ["Content-Type", "X-Telegram-Init-Data"],
-});
 const router = Router();
-router.all("*", preflight);
+router.all("*", (req, env) => {
+  const { preflight } = cors({
+    origin: env.FRONTEND_URL || "*",
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "X-Telegram-Init-Data"],
+  });
+  return preflight(req);
+});
 
 router.post("/api/auth/login", async (req, env) => {
   const guard = await authMiddleware(req, env);
@@ -42,5 +44,12 @@ router.all("/api/admin/*", adminRouter.fetch);
 router.all("*", () => new Response("Not Found", { status: 404 }));
 
 export default {
-  fetch: (req, env, ctx) => router.fetch(req, env, ctx).then(corsify),
+  fetch: (req, env, ctx) => {
+    const { corsify } = cors({
+      origin: env.FRONTEND_URL || "*",
+      allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "X-Telegram-Init-Data"],
+    });
+    return router.fetch(req, env, ctx).then(corsify);
+  },
 };
