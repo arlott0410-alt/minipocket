@@ -241,6 +241,14 @@ export default function Transfer() {
     }
   };
 
+  const selectWalletAsSource = (walletId) => {
+    setForm((s) => {
+      const next = { ...s, from_wallet_id: walletId };
+      if (s.to_wallet_id === walletId) next.to_wallet_id = "";
+      return next;
+    });
+  };
+
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
       <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("transfer.title")}</h1>
@@ -255,7 +263,7 @@ export default function Transfer() {
           <div className="space-y-2">
             {wallets.map((w) => (
               <div key={w.id} className="space-y-2">
-                <WalletCard wallet={w} />
+                <WalletCard wallet={w} onClick={() => selectWalletAsSource(w.id)} />
                 {ownedWallets.some((x) => x.id === w.id) ? (
                   <Button size="sm" variant="secondary" className="w-full" onClick={() => openShareDetail(w.id)}>
                     {t("transfer.share_wallet")}
