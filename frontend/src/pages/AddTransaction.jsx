@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatAmountInput, parseAmountInput, precisionByCurrency } from "../lib/amount";
 import Card from "../components/ui/Card";
 import Select from "../components/ui/Select";
 import Input from "../components/ui/Input";
@@ -17,6 +18,8 @@ export default function AddTransaction() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const selectedWallet = wallets.find((w) => w.id === form.wallet_id);
+  const amountPrecision = precisionByCurrency(selectedWallet?.currency);
   useEffect(() => {
     Promise.all([api.getWallets(), api.getMeta()]).then(([d, m]) => {
       const all = [...(d.owned || []), ...(d.shared || [])];
@@ -30,14 +33,15 @@ export default function AddTransaction() {
     });
   }, []);
   const submit = async () => {
-    if (!form.wallet_id || !form.amount) {
+    const amountNumber = parseAmountInput(form.amount);
+    if (!form.wallet_id || amountNumber <= 0) {
       setError(t("common.fill_all"));
       return;
     }
     try {
       setSaving(true);
       setError("");
-      await api.createTransaction({ ...form, amount: Number(Number(form.amount).toFixed(4)), category_id: form.category_id || null });
+      await api.createTransaction({ ...form, amount: Number(amountNumber.toFixed(amountPrecision)), category_id: form.category_id || null });
       navigate("/");
     } catch {
       setError(t("common.error"));
@@ -66,7 +70,13 @@ export default function AddTransaction() {
             <option value="">{t("transaction.category_none")}</option>
             {filteredCategories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name_lo || c.name_en}</option>)}
           </Select>
-          <Input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))} />
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={(e) => setForm((s) => ({ ...s, amount: formatAmountInput(e.target.value, amountPrecision) }))}
+          />
           <Input placeholder="Note" value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} />
           <Button onClick={submit} className="w-full" disabled={saving}>{saving ? t("common.loading") : t("common.save")}</Button>
         </Card>

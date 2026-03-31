@@ -10,6 +10,7 @@ import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import { useAuthStore } from "../store/authStore";
 import { useTranslation } from "react-i18next";
+import { formatAmountInput, formatDisplayAmount, parseAmountInput, precisionByCurrency } from "../lib/amount";
 
 export default function WalletDetail() {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ export default function WalletDetail() {
     setEditingTx(tx);
     setTxForm({
       type: tx.type,
-      amount: String(tx.amount || ""),
+      amount: formatAmountInput(String(tx.amount || ""), precisionByCurrency(wallet?.currency)),
       note: tx.note || "",
       transaction_date: tx.transaction_date || "",
     });
@@ -49,9 +50,11 @@ export default function WalletDetail() {
 
   const saveEditTx = async () => {
     if (!editingTx) return;
+    const amountNumber = parseAmountInput(txForm.amount);
+    if (amountNumber <= 0) return;
     await api.updateTransaction(editingTx.id, {
       type: txForm.type,
-      amount: Number(txForm.amount),
+      amount: amountNumber,
       note: txForm.note,
       transaction_date: txForm.transaction_date,
       category_id: editingTx.category_id || null,
@@ -89,7 +92,7 @@ export default function WalletDetail() {
           <div className="surface-card p-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">{wallet.currency}</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">{wallet.icon} {wallet.name}</h1>
-            <p className="text-2xl font-bold mt-2" style={{ color: wallet.color }}>{Number(wallet.balance || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold mt-2" style={{ color: wallet.color }}>{formatDisplayAmount(wallet.balance || 0, wallet.currency)}</p>
             {canDeleteWallet && (
               <div className="mt-3">
                 <Button variant="danger" size="sm" onClick={deleteWallet}>Delete Wallet</Button>
@@ -120,7 +123,13 @@ export default function WalletDetail() {
             <option value="income">{t("transaction.type_income")}</option>
             <option value="expense">{t("transaction.type_expense")}</option>
           </Select>
-          <Input type="number" value={txForm.amount} onChange={(e) => setTxForm((s) => ({ ...s, amount: e.target.value }))} placeholder="Amount" />
+          <Input
+            type="text"
+            inputMode="decimal"
+            value={txForm.amount}
+            onChange={(e) => setTxForm((s) => ({ ...s, amount: formatAmountInput(e.target.value, precisionByCurrency(wallet?.currency)) }))}
+            placeholder="Amount"
+          />
           <Input type="date" value={txForm.transaction_date} onChange={(e) => setTxForm((s) => ({ ...s, transaction_date: e.target.value }))} />
           <Input value={txForm.note} onChange={(e) => setTxForm((s) => ({ ...s, note: e.target.value }))} placeholder="Note" />
           <div className="flex gap-2">

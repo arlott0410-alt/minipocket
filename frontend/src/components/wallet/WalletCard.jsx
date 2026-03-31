@@ -1,3 +1,5 @@
+import { formatDisplayAmount } from "../../lib/amount";
+
 export default function WalletCard({ wallet, onClick }) {
   return (
     <button
@@ -9,7 +11,7 @@ export default function WalletCard({ wallet, onClick }) {
         <p className="text-xs font-medium text-amber-200/80">{wallet.currency}</p>
       </div>
       <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: wallet.color }}>
-        {Number(wallet.balance || 0).toLocaleString()}
+        {formatDisplayAmount(wallet.balance || 0, wallet.currency)}
       </p>
     </button>
   );

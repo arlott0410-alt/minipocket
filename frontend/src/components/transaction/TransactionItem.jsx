@@ -1,3 +1,5 @@
+import { formatDisplayAmount } from "../../lib/amount";
+
 export default function TransactionItem({ transaction, actions }) {
   const sign = transaction.type === "income" ? "+" : "-";
   const color = transaction.type === "income" ? "text-emerald-300" : "text-rose-300";
@@ -8,7 +10,7 @@ export default function TransactionItem({ transaction, actions }) {
         <p className="text-xs text-amber-200/60">{transaction.transaction_date}</p>
       </div>
       <div className="text-right">
-        <p className={`font-semibold ${color}`}>{sign}{Number(transaction.amount || 0).toLocaleString()}</p>
+        <p className={`font-semibold ${color}`}>{sign}{formatDisplayAmount(transaction.amount || 0, transaction.wallet?.currency)}</p>
         {actions && <div className="mt-1">{actions}</div>}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
+import { formatAmountInput, formatDisplayAmount, parseAmountInput, precisionByCurrency } from "../lib/amount";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
@@ -77,11 +78,14 @@ export default function Transfer() {
     [wallets, form.from_wallet_id],
   );
   const isCrossCurrency = fromWallet && toWallet && fromWallet.currency !== toWallet.currency;
-  const computedRate = Number(form.from_amount || 0) > 0 && Number(form.to_amount || 0) > 0
-    ? Number(form.to_amount) / Number(form.from_amount)
+  const fromAmountNumber = parseAmountInput(form.from_amount);
+  const toAmountNumber = parseAmountInput(form.to_amount);
+  const feeNumber = parseAmountInput(form.fee);
+  const computedRate = fromAmountNumber > 0 && toAmountNumber > 0
+    ? toAmountNumber / fromAmountNumber
     : 0;
   const invalidSameWallet = !!form.from_wallet_id && !!form.to_wallet_id && form.from_wallet_id === form.to_wallet_id;
-  const transferDisabled = saving || !form.from_wallet_id || !form.to_wallet_id || !form.from_amount || !form.to_amount || invalidSameWallet;
+  const transferDisabled = saving || !form.from_wallet_id || !form.to_wallet_id || fromAmountNumber <= 0 || toAmountNumber <= 0 || invalidSameWallet;
 
   useEffect(() => {
     if (form.from_wallet_id && form.to_wallet_id && form.from_wallet_id === form.to_wallet_id) {
@@ -112,7 +116,7 @@ export default function Transfer() {
 
   const submit = async () => {
     setError("");
-    if (!form.from_wallet_id || !form.to_wallet_id || !form.from_amount || !form.to_amount) {
+    if (!form.from_wallet_id || !form.to_wallet_id || fromAmountNumber <= 0 || toAmountNumber <= 0) {
       setError(t("common.fill_all"));
       return;
     }
@@ -124,10 +128,10 @@ export default function Transfer() {
       setSaving(true);
       await api.createTransfer({
         ...form,
-        from_amount: Number(form.from_amount),
-        to_amount: Number(form.to_amount),
+        from_amount: fromAmountNumber,
+        to_amount: toAmountNumber,
         exchange_rate: isCrossCurrency ? Number(computedRate.toFixed(8)) : 1,
-        fee: Number(form.fee || 0),
+        fee: feeNumber,
       });
       setForm({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", fee: "0", note: "" });
       await loadAll();
@@ -267,7 +271,13 @@ export default function Transfer() {
               {wallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
             <p className="label">{t("transfer.source_amount")} ({fromWallet?.currency || "-"})</p>
-            <Input type="number" value={form.from_amount} onChange={(e) => setForm((s) => ({ ...s, from_amount: e.target.value }))} placeholder={t("transfer.source_amount")} />
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={form.from_amount}
+              onChange={(e) => setForm((s) => ({ ...s, from_amount: formatAmountInput(e.target.value, precisionByCurrency(fromWallet?.currency)) }))}
+              placeholder={t("transfer.source_amount")}
+            />
             <p className="label">{t("transfer.to")}</p>
             <Select value={form.to_wallet_id} onChange={(e) => setForm((s) => ({ ...s, to_wallet_id: e.target.value }))}>
               <option value="">{t("transfer.to")}</option>
@@ -275,9 +285,10 @@ export default function Transfer() {
             </Select>
             <p className="label">{t("transfer.destination_amount")} ({toWallet?.currency || "-"})</p>
             <Input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={form.to_amount}
-              onChange={(e) => setForm((s) => ({ ...s, to_amount: e.target.value }))}
+              onChange={(e) => setForm((s) => ({ ...s, to_amount: formatAmountInput(e.target.value, precisionByCurrency(toWallet?.currency)) }))}
               placeholder={t("transfer.destination_amount")}
               disabled={!!fromWallet && !!toWallet && fromWallet.currency === toWallet.currency}
             />
@@ -289,9 +300,15 @@ export default function Transfer() {
                 {t("transfer.rate")}: 1 {fromWallet?.currency || ""} = {computedRate ? computedRate.toFixed(6) : "0"} {toWallet?.currency || ""}
               </p>
             ) : null}
-            <Input type="number" value={form.fee} onChange={(e) => setForm((s) => ({ ...s, fee: e.target.value }))} placeholder={t("transfer.fee")} />
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={form.fee}
+              onChange={(e) => setForm((s) => ({ ...s, fee: formatAmountInput(e.target.value, 2) }))}
+              placeholder={t("transfer.fee")}
+            />
             <Input value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} placeholder={t("common.note")} />
-            <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{Number(form.to_amount || 0).toLocaleString()} {toWallet?.currency || ""}</span></p>
+            <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{formatDisplayAmount(toAmountNumber, toWallet?.currency)} {toWallet?.currency || ""}</span></p>
             <Button onClick={submit} className="w-full" disabled={transferDisabled}>{saving ? t("common.loading") : t("transfer.confirm")}</Button>
           </Card>
 

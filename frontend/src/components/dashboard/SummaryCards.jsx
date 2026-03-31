@@ -1,3 +1,5 @@
+import { formatDisplayAmount } from "../../lib/amount";
+
 export default function SummaryCards({ wallets, loading }) {
   const totalsByCurrency = (wallets || []).reduce((acc, w) => {
     const c = w.currency || "N/A";
@@ -17,7 +19,7 @@ export default function SummaryCards({ wallets, loading }) {
           {currencyRows.map(([currency, amount]) => (
             <div key={currency} className="surface-muted p-2">
               <p className="text-[11px] text-amber-300/75">{currency}</p>
-              <p className="text-lg font-bold text-amber-100">{Number(amount).toLocaleString()}</p>
+              <p className="text-lg font-bold text-amber-100">{formatDisplayAmount(amount, currency)}</p>
             </div>
           ))}
         </div>
