@@ -33,7 +33,7 @@ export default function Transfer() {
   const { t } = useTranslation();
   const [wallets, setWallets] = useState([]);
   const [ownedWallets, setOwnedWallets] = useState([]);
-  const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", fee: "0", note: "" });
+  const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", note: "" });
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [shareWalletId, setShareWalletId] = useState("");
   const [sharePermission, setSharePermission] = useState("viewer");
@@ -83,7 +83,6 @@ export default function Transfer() {
   const isCrossCurrency = fromWallet && toWallet && fromWallet.currency !== toWallet.currency;
   const fromAmountNumber = parseAmountInput(form.from_amount);
   const toAmountNumber = parseAmountInput(form.to_amount);
-  const feeNumber = parseAmountInput(form.fee);
   const computedRate = fromAmountNumber > 0 && toAmountNumber > 0
     ? toAmountNumber / fromAmountNumber
     : 0;
@@ -134,9 +133,9 @@ export default function Transfer() {
         from_amount: fromAmountNumber,
         to_amount: toAmountNumber,
         exchange_rate: isCrossCurrency ? Number(computedRate.toFixed(8)) : 1,
-        fee: feeNumber,
+        fee: 0,
       });
-      setForm({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", fee: "0", note: "" });
+      setForm({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", note: "" });
       await loadAll();
     } catch (e) {
       setError(e.error === "insufficient_balance" ? t("transfer.insufficient") : t("common.error"));
@@ -308,13 +307,6 @@ export default function Transfer() {
                 {t("transfer.rate")}: 1 {fromWallet?.currency || ""} = {computedRate ? computedRate.toFixed(6) : "0"} {toWallet?.currency || ""}
               </p>
             ) : null}
-            <Input
-              type="text"
-              inputMode="decimal"
-              value={form.fee}
-              onChange={(e) => setForm((s) => ({ ...s, fee: formatAmountInput(e.target.value, 2) }))}
-              placeholder={t("transfer.fee")}
-            />
             <Input value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} placeholder={t("common.note")} />
             <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{formatDisplayAmount(toAmountNumber, toWallet?.currency)} {toWallet?.currency || ""}</span></p>
             <Button onClick={submit} className="w-full" disabled={transferDisabled}>{saving ? t("common.loading") : t("transfer.confirm")}</Button>
