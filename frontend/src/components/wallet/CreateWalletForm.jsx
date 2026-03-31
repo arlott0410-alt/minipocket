@@ -48,7 +48,11 @@ export default function CreateWalletForm({ onClose, onCreated }) {
         {error && <p className="text-sm text-red-500">{error}</p>}
           <Input placeholder={t("wallet.name_placeholder")} value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
           <Select value={form.currency} onChange={(e) => setForm((s) => ({ ...s, currency: e.target.value }))}>
-          {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} - {c.name}</option>)}
+            {currencies.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} - {t(`currency.${c.code}`, { defaultValue: c.name || c.code })}
+              </option>
+            ))}
           </Select>
         </div>
 
