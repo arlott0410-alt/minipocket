@@ -4,6 +4,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Skeleton from "../components/ui/Skeleton";
+import { useTranslation } from "react-i18next";
 
 const BRAND_PRESETS = [
   "#6366f1",
@@ -21,11 +22,20 @@ const BRAND_PRESETS = [
 ];
 
 export default function Admin() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminAuthed, setAdminAuthed] = useState(false);
   const [settings, setSettings] = useState({});
   const [users, setUsers] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState({
+    name_lo: "",
+    name_en: "",
+    type: "both",
+    emoji: "📝",
+    sort_order: 0,
+  });
   const [logs, setLogs] = useState([]);
   const [tab, setTab] = useState("settings");
   const [error, setError] = useState("");
@@ -35,12 +45,14 @@ export default function Admin() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [s, u] = await Promise.all([
+      const [s, u, c] = await Promise.all([
         api.adminGetSettings(),
         api.adminGetUsers(),
+        api.adminGetCategories(),
       ]);
       setSettings(Object.fromEntries((s.settings || []).map((x) => [x.key, x.value])));
       setUsers(u.users || []);
+      setCategories(c.categories || []);
       if (tab === "audit") {
         const l = await api.adminGetAuditLogs();
         setLogs(l.logs || []);
@@ -103,9 +115,43 @@ export default function Admin() {
     }
   };
 
+  const createCategory = async () => {
+    if (!newCategory.name_lo || !newCategory.name_en) {
+      setError(t("common.fill_all"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await api.adminCreateCategory({
+        ...newCategory,
+        sort_order: Number(newCategory.sort_order || 0),
+      });
+      setNewCategory({ name_lo: "", name_en: "", type: "both", emoji: "📝", sort_order: 0 });
+      await loadDashboard();
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleCategoryActive = async (cat) => {
+    setSaving(true);
+    setError("");
+    try {
+      await api.adminUpdateCategory(cat.id, { is_active: !cat.is_active });
+      await loadDashboard();
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t("admin.title")}</h1>
 
       {!adminAuthed ? (
         <Card className="space-y-3">
@@ -132,13 +178,16 @@ export default function Admin() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex gap-2">
               <Button variant={tab === "settings" ? "primary" : "secondary"} size="sm" onClick={() => setTab("settings")}>
-                Settings
+                {t("admin.tabs.settings")}
               </Button>
               <Button variant={tab === "users" ? "primary" : "secondary"} size="sm" onClick={() => setTab("users")}>
-                Users
+                {t("admin.tabs.users")}
+              </Button>
+              <Button variant={tab === "categories" ? "primary" : "secondary"} size="sm" onClick={() => setTab("categories")}>
+                {t("admin.tabs.categories")}
               </Button>
               <Button variant={tab === "audit" ? "primary" : "secondary"} size="sm" onClick={() => setTab("audit")}>
-                Audit
+                {t("admin.tabs.audit")}
               </Button>
             </div>
             <Button
@@ -201,7 +250,7 @@ export default function Admin() {
                 </div>
               )}
               <Button onClick={save} className="w-full" disabled={saving}>
-                {saving ? "Saving..." : "ບັນທຶກ"}
+                {saving ? "Saving..." : t("common.save")}
               </Button>
             </Card>
           ) : tab === "users" ? (
@@ -222,6 +271,38 @@ export default function Admin() {
                 </Card>
               ))}
             </div>
+          ) : tab === "categories" ? (
+            <Card className="space-y-4">
+              <p className="section-title">Income/Expense Categories</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="name_lo" value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
+                <Input placeholder="name_en" value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
+                <Input placeholder="emoji" value={newCategory.emoji} onChange={(e) => setNewCategory((s) => ({ ...s, emoji: e.target.value }))} />
+                <select
+                  value={newCategory.type}
+                  onChange={(e) => setNewCategory((s) => ({ ...s, type: e.target.value }))}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <option value="income">income</option>
+                  <option value="expense">expense</option>
+                  <option value="both">both</option>
+                </select>
+              </div>
+              <Button onClick={createCategory} disabled={saving} className="w-full">{t("wallet.add")}</Button>
+              <div className="space-y-2">
+                {categories.map((cat) => (
+                  <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cat.emoji} {cat.name_lo} / {cat.name_en}</p>
+                      <p className="text-xs text-slate-500">type: {cat.type}</p>
+                    </div>
+                    <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>
+                      {cat.is_active ? "Disable" : "Enable"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
           ) : (
             <Card className="space-y-3">
               <p className="section-title">Admin Audit Logs</p>

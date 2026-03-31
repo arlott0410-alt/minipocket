@@ -6,5 +6,7 @@
   "transfer": { "from": "From Wallet", "to": "To Wallet", "amount": "Amount", "rate": "Exchange Rate", "fee": "Fee", "confirm": "Confirm Transfer", "success": "Transfer successful!", "insufficient": "Insufficient balance", "same_wallet_error": "Cannot transfer to same wallet", "select_wallet": "Select wallet", "cross_currency_notice": "Different currencies — please enter exchange rate", "you_receive": "Recipient receives" },
   "report": { "income": "Income", "expense": "Expense", "net": "Net", "income_vs_expense": "Income vs Expense (6 months)", "expense_by_category": "Expense by Category" },
   "subscription": { "paid": "✨ Premium" },
-  "common": { "see_all": "See all", "fill_all": "Please fill all fields", "error": "Something went wrong", "loading": "Loading...", "optional": "optional", "note": "Note" }
+  "settings": { "title": "Settings", "language": "Language", "lang_lo": "ພາສາລາວ", "lang_en": "English", "lang_th": "ไทย" },
+  "admin": { "title": "Admin Panel", "tabs": { "settings": "Settings", "users": "Users", "categories": "Categories", "audit": "Audit" } },
+  "common": { "see_all": "See all", "fill_all": "Please fill all fields", "error": "Something went wrong", "loading": "Loading...", "optional": "optional", "note": "Note", "save": "Save", "cancel": "Cancel" }
 }

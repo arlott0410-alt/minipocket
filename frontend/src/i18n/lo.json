@@ -6,5 +6,7 @@
   "transfer": { "from": "ຈາກກະເປົ໋າ", "to": "ໄປກະເປົ໋າ", "amount": "ຈຳນວນ", "rate": "ອັດຕາແລກປ່ຽນ", "fee": "ຄ່າທຳນຽມ", "confirm": "ຢືນຢັນການໂອນ", "success": "ໂອນສຳເລັດ!", "insufficient": "ຍອດເງິນບໍ່ພໍ", "same_wallet_error": "ບໍ່ສາມາດໂອນຫາກະເປົ໋າດຽວກັນ", "select_wallet": "ເລືອກກະເປົ໋າ", "cross_currency_notice": "ສະກຸນເງິນຕ່າງກັນ — ກະລຸນາໃສ່ອັດຕາແລກປ່ຽນ", "you_receive": "ຜູ້ຮັບໄດ້ຮັບ" },
   "report": { "income": "ລາຍຮັບ", "expense": "ລາຍຈ່າຍ", "net": "ສຸດທິ", "income_vs_expense": "ລາຍຮັບ vs ລາຍຈ່າຍ (6 ເດືອນ)", "expense_by_category": "ລາຍຈ່າຍຕາມໝວດໝູ່" },
   "subscription": { "paid": "✨ Premium" },
-  "common": { "see_all": "ເບິ່ງທັງໝົດ", "fill_all": "ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຄົບ", "error": "ເກີດຂໍ້ຜິດພາດ", "loading": "ກຳລັງໂຫຼດ...", "optional": "ທາງເລືອກ", "note": "ໝາຍເຫດ" }
+  "settings": { "title": "ຕັ້ງຄ່າ", "language": "ພາສາ", "lang_lo": "ພາສາລາວ", "lang_en": "English", "lang_th": "ไทย" },
+  "admin": { "title": "ໜ້າແອດມິນ", "tabs": { "settings": "ຕັ້ງຄ່າ", "users": "ຜູ້ໃຊ້", "categories": "ໝວດໝູ່", "audit": "ບັນທຶກ" } },
+  "common": { "see_all": "ເບິ່ງທັງໝົດ", "fill_all": "ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຄົບ", "error": "ເກີດຂໍ້ຜິດພາດ", "loading": "ກຳລັງໂຫຼດ...", "optional": "ທາງເລືອກ", "note": "ໝາຍເຫດ", "save": "ບັນທຶກ", "cancel": "ຍົກເລີກ" }
 }
