@@ -9,6 +9,23 @@ import Skeleton from "../components/ui/Skeleton";
 import WalletCard from "../components/wallet/WalletCard";
 import Modal from "../components/ui/Modal";
 
+const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+
+function extractShareToken() {
+  const params = new URLSearchParams(window.location.search);
+  const queryToken = params.get("share_token");
+  if (queryToken) return queryToken;
+
+  const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+  if (startParam?.startsWith("share_")) return startParam.slice(6);
+  return "";
+}
+
+function buildShareUrl(token) {
+  if (BOT_USERNAME) return `https://t.me/${BOT_USERNAME}?startapp=share_${token}`;
+  return `${window.location.origin}${window.location.pathname}?share_token=${token}`;
+}
+
 export default function Transfer() {
   const { t } = useTranslation();
   const [wallets, setWallets] = useState([]);
@@ -35,8 +52,7 @@ export default function Transfer() {
       setIncomingInvites(invites.invites || []);
       setShareWalletId((prev) => prev || owned[0]?.id || "");
 
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("share_token");
+      const token = extractShareToken();
       if (token) {
         try {
           const preview = await api.getShareLinkInfo(token);
@@ -107,7 +123,7 @@ export default function Transfer() {
         permission: sharePermission,
         max_uses: Number(shareMaxUses || 1),
       });
-      const generated = `${window.location.origin}${window.location.pathname}?share_token=${res.link.token}`;
+      const generated = buildShareUrl(res.link.token);
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(generated);
       } else {
@@ -339,7 +355,7 @@ export default function Transfer() {
                         <Button
                           size="sm"
                           onClick={async () => {
-                            const url = `${window.location.origin}${window.location.pathname}?share_token=${link.token}`;
+                            const url = buildShareUrl(link.token);
                             if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
                           }}
                         >
