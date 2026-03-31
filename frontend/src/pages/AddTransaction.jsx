@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import Card from "../components/ui/Card";
 import Select from "../components/ui/Select";
@@ -8,6 +9,7 @@ import Button from "../components/ui/Button";
 import Skeleton from "../components/ui/Skeleton";
 
 export default function AddTransaction() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState({ wallet_id: "", type: "expense", amount: "", note: "", category_id: "" });
   const [wallets, setWallets] = useState([]);
@@ -29,7 +31,7 @@ export default function AddTransaction() {
   }, []);
   const submit = async () => {
     if (!form.wallet_id || !form.amount) {
-      setError("Please fill all required fields");
+      setError(t("common.fill_all"));
       return;
     }
     try {
@@ -38,7 +40,7 @@ export default function AddTransaction() {
       await api.createTransaction({ ...form, amount: Number(Number(form.amount).toFixed(4)), category_id: form.category_id || null });
       navigate("/");
     } catch {
-      setError("Failed to save transaction");
+      setError(t("common.error"));
     } finally {
       setSaving(false);
     }
@@ -47,7 +49,7 @@ export default function AddTransaction() {
 
   return (
     <div className="pb-24 pt-4 px-4 space-y-3">
-      <h1 className="text-2xl font-bold tracking-tight">Add Transaction</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t("transaction.add_title")}</h1>
       {loading ? (
         <Skeleton className="h-60" />
       ) : (
@@ -57,16 +59,16 @@ export default function AddTransaction() {
             {wallets.map((w) => <option key={w.id} value={w.id}>{w.name} ({w.currency})</option>)}
           </Select>
           <Select value={form.type} onChange={(e) => setForm((s) => ({ ...s, type: e.target.value }))}>
-            <option value="income">income</option>
-            <option value="expense">expense</option>
+            <option value="income">{t("transaction.type_income")}</option>
+            <option value="expense">{t("transaction.type_expense")}</option>
           </Select>
           <Select value={form.category_id} onChange={(e) => setForm((s) => ({ ...s, category_id: e.target.value }))}>
-            <option value="">No category</option>
+            <option value="">{t("transaction.category_none")}</option>
             {filteredCategories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name_lo || c.name_en}</option>)}
           </Select>
           <Input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))} />
           <Input placeholder="Note" value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} />
-          <Button onClick={submit} className="w-full" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+          <Button onClick={submit} className="w-full" disabled={saving}>{saving ? t("common.loading") : t("common.save")}</Button>
         </Card>
       )}
     </div>

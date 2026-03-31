@@ -37,9 +37,12 @@ export const api = {
   deleteTransaction: (id) => request(`/api/transactions/${id}`, { method: "DELETE" }),
   getTransfers: () => request("/api/transfers"),
   createTransfer: (body) => request("/api/transfers", { method: "POST", body }),
-  getSummary: (month, wallet_id = "") => request(`/api/reports/summary?${new URLSearchParams({ month, ...(wallet_id ? { wallet_id } : {}) })}`),
-  getChart: (months = 6, wallet_id = "") => request(`/api/reports/chart?${new URLSearchParams({ months: String(months), ...(wallet_id ? { wallet_id } : {}) })}`),
-  getByCategory: (month, type, wallet_id = "") => request(`/api/reports/by-category?${new URLSearchParams({ month, type, ...(wallet_id ? { wallet_id } : {}) })}`),
+  getSummary: ({ period = "month", date, wallet_id = "" } = {}) =>
+    request(`/api/reports/summary?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), ...(wallet_id ? { wallet_id } : {}) })}`),
+  getChart: ({ period = "month", date, wallet_id = "" } = {}) =>
+    request(`/api/reports/chart?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), ...(wallet_id ? { wallet_id } : {}) })}`),
+  getByCategory: ({ period = "month", date, type = "expense", wallet_id = "" } = {}) =>
+    request(`/api/reports/by-category?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), type, ...(wallet_id ? { wallet_id } : {}) })}`),
   getSettings: () => request("/api/users/settings"),
   adminLogin: (body) => request("/api/admin/login", { method: "POST", body }),
   adminGetSettings: () => request("/api/admin/settings"),

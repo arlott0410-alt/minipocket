@@ -9,8 +9,10 @@ import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import { useAuthStore } from "../store/authStore";
+import { useTranslation } from "react-i18next";
 
 export default function WalletDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -115,8 +117,8 @@ export default function WalletDetail() {
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-amber-100">Edit Transaction</h3>
           <Select value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))}>
-            <option value="income">income</option>
-            <option value="expense">expense</option>
+            <option value="income">{t("transaction.type_income")}</option>
+            <option value="expense">{t("transaction.type_expense")}</option>
           </Select>
           <Input type="number" value={txForm.amount} onChange={(e) => setTxForm((s) => ({ ...s, amount: e.target.value }))} placeholder="Amount" />
           <Input type="date" value={txForm.transaction_date} onChange={(e) => setTxForm((s) => ({ ...s, transaction_date: e.target.value }))} />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-export function useReports(month, walletId = "") {
+export function useReports({ period = "month", date, walletId = "" }) {
   const [summary, setSummary] = useState(null);
   const [chart, setChart] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -10,9 +10,9 @@ export function useReports(month, walletId = "") {
     const load = async () => {
       setLoading(true);
       const [s, c, by] = await Promise.all([
-        api.getSummary(month, walletId),
-        api.getChart(6, walletId),
-        api.getByCategory(month, "expense", walletId),
+        api.getSummary({ period, date, wallet_id: walletId }),
+        api.getChart({ period, date, wallet_id: walletId }),
+        api.getByCategory({ period, date, type: "expense", wallet_id: walletId }),
       ]);
       setSummary(s);
       setChart(c.chart || []);
@@ -20,6 +20,6 @@ export function useReports(month, walletId = "") {
       setLoading(false);
     };
     load();
-  }, [month, walletId]);
+  }, [period, date, walletId]);
   return { summary, chart, categories, loading };
 }
