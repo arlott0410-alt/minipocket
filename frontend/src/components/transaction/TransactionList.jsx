@@ -1,5 +1,11 @@
 import TransactionItem from "./TransactionItem";
 
-export default function TransactionList({ transactions }) {
-  return <div className="bg-white dark:bg-gray-800 rounded-2xl divide-y">{transactions.map((t) => <TransactionItem key={t.id} transaction={t} />)}</div>;
+export default function TransactionList({ transactions, renderActions }) {
+  return (
+    <div className="surface-card divide-y divide-amber-500/10">
+      {transactions.map((t) => (
+        <TransactionItem key={t.id} transaction={t} actions={renderActions ? renderActions(t) : null} />
+      ))}
+    </div>
+  );
 }
