@@ -32,15 +32,38 @@ router.get("/users", async (req) => {
 });
 router.patch("/users/:id", async (req) => {
   const body = await req.json();
+  let nextPaidUntil = body.paid_until || null;
+  let nextIsPaid = body.is_paid;
+
+  if (body.plan_duration_days) {
+    const days = Number(body.plan_duration_days);
+    if (![30, 180, 365].includes(days)) {
+      return Response.json({ error: "invalid_plan_duration_days" }, { status: 400 });
+    }
+
+    const { data: existingUser } = await req.supabase
+      .from("users")
+      .select("paid_until")
+      .eq("id", req.params.id)
+      .single();
+    const base = existingUser?.paid_until && new Date(existingUser.paid_until).getTime() > Date.now()
+      ? new Date(existingUser.paid_until)
+      : new Date();
+    base.setDate(base.getDate() + days);
+    nextPaidUntil = base.toISOString();
+    nextIsPaid = true;
+  }
+
   const { error } = await req.supabase
     .from("users")
-    .update({ is_paid: body.is_paid, paid_until: body.paid_until || null })
+    .update({ is_paid: nextIsPaid, paid_until: nextPaidUntil })
     .eq("id", req.params.id);
   if (error) return Response.json({ error: error.message }, { status: 400 });
   await logAdminAction(req, "users.subscription_update", {
     user_id: req.params.id,
-    is_paid: body.is_paid,
-    paid_until: body.paid_until || null,
+    is_paid: nextIsPaid,
+    paid_until: nextPaidUntil,
+    plan_duration_days: body.plan_duration_days || null,
   });
   return Response.json({ success: true });
 });
@@ -75,17 +98,7 @@ router.patch("/categories/:id", async (req) => {
 });
 
 router.get("/payments", async (req) => {
-  const u = new URL(req.url);
-  const status = u.searchParams.get("status");
-  let query = req.supabase
-    .from("payment_requests")
-    .select("*, user:users(id,telegram_id,first_name,last_name,username)")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (status) query = query.eq("status", status);
-  const { data, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 400 });
-  return Response.json({ payments: data || [] });
+  return Response.json({ error: "payment_request_disabled_contact_admin" }, { status: 410 });
 });
 
 router.get("/audit-logs", async (req) => {
@@ -99,46 +112,7 @@ router.get("/audit-logs", async (req) => {
 });
 
 router.patch("/payments/:id", async (req) => {
-  const body = await req.json();
-  const nextStatus = body?.status;
-  if (!["approved", "rejected", "pending"].includes(nextStatus)) {
-    return Response.json({ error: "invalid_status" }, { status: 400 });
-  }
-
-  const { data: payment, error: readError } = await req.supabase
-    .from("payment_requests")
-    .select("*")
-    .eq("id", req.params.id)
-    .single();
-  if (readError || !payment) return Response.json({ error: "not_found" }, { status: 404 });
-
-  const { data: updated, error } = await req.supabase
-    .from("payment_requests")
-    .update({
-      status: nextStatus,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: req.admin.email,
-      admin_note: body?.admin_note || null,
-    })
-    .eq("id", req.params.id)
-    .select()
-    .single();
-  if (error) return Response.json({ error: error.message }, { status: 400 });
-
-  if (nextStatus === "approved") {
-    const { data: settings } = await req.supabase.from("settings").select("key,value").eq("key", "free_trial_days").single();
-    const paidDays = Number(settings?.value || 30);
-    const paidUntil = new Date(Date.now() + paidDays * 24 * 60 * 60 * 1000).toISOString();
-    await req.supabase.from("users").update({ is_paid: true, paid_until: paidUntil }).eq("id", payment.user_id);
-  }
-
-  await logAdminAction(req, "payments.review", {
-    payment_id: req.params.id,
-    status: nextStatus,
-    user_id: payment.user_id,
-  });
-
-  return Response.json({ payment: updated });
+  return Response.json({ error: "payment_request_disabled_contact_admin" }, { status: 410 });
 });
 
 export default router;

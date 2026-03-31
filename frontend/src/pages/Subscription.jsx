@@ -3,46 +3,14 @@ import { useAuthStore } from "../store/authStore";
 import Skeleton from "../components/ui/Skeleton";
 import { api } from "../lib/api";
 import Card from "../components/ui/Card";
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
 
 export default function Subscription() {
   const { user } = useAuthStore();
   const [settings, setSettings] = useState(null);
-  const [payments, setPayments] = useState([]);
-  const [form, setForm] = useState({ amount_lak: "", transfer_ref: "", note: "", slip_url: "" });
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    Promise.all([api.getSettings(), api.getMyPayments()])
-      .then(([s, p]) => {
-        setSettings(s.settings || {});
-        setPayments(p.payments || []);
-      });
+    api.getSettings().then((s) => setSettings(s.settings || {}));
   }, []);
-
-  const submitPayment = async () => {
-    if (!form.amount_lak) return setMessage("ກະລຸນາໃສ່ຈຳນວນເງິນ");
-    setSaving(true);
-    setMessage("");
-    try {
-      await api.createPaymentRequest({
-        amount_lak: Number(form.amount_lak),
-        transfer_ref: form.transfer_ref,
-        note: form.note,
-        slip_url: form.slip_url,
-      });
-      const latest = await api.getMyPayments();
-      setPayments(latest.payments || []);
-      setForm({ amount_lak: "", transfer_ref: "", note: "", slip_url: "" });
-      setMessage("ສົ່ງຄຳຂໍກວດສອບການຈ່າຍແລ້ວ");
-    } catch {
-      setMessage("ສົ່ງຄຳຂໍບໍ່ສຳເລັດ");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
@@ -60,32 +28,16 @@ export default function Subscription() {
           </Card>
 
           <Card className="space-y-3">
-            <p className="label">Submit monthly payment</p>
-            <Input type="number" placeholder="Amount (LAK)" value={form.amount_lak} onChange={(e) => setForm((s) => ({ ...s, amount_lak: e.target.value }))} />
-            <Input placeholder="Transfer ref / Transaction ID" value={form.transfer_ref} onChange={(e) => setForm((s) => ({ ...s, transfer_ref: e.target.value }))} />
-            <Input placeholder="Slip URL (optional)" value={form.slip_url} onChange={(e) => setForm((s) => ({ ...s, slip_url: e.target.value }))} />
-            <Input placeholder="Note (optional)" value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} />
-            {message && <p className="text-sm text-slate-600 dark:text-slate-300">{message}</p>}
-            <Button onClick={submitPayment} className="w-full" disabled={saving}>{saving ? "Submitting..." : "Submit for review"}</Button>
-          </Card>
-
-          <Card className="space-y-2">
-            <p className="label">Payment history</p>
-            {payments.length === 0 ? (
-              <p className="text-sm text-slate-500">No payment requests yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((p) => (
-                  <div key={p.id} className="surface-muted p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span>{Number(p.amount_lak || 0).toLocaleString()} LAK</span>
-                      <span className="font-medium">{p.status}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">{new Date(p.created_at).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="label">Contact Admin for subscription upgrade</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200">
+              ລະບົບນີ້ປັບປຸງເປັນການຕໍ່ອາຍຸຜ່ານແອດມິນເທົ່ານັ້ນ. ກະລຸນາຕິດຕໍ່ແອດມິນຕາມຊ່ອງທາງຂ້າງລຸ່ມ.
+            </p>
+            <div className="surface-muted p-3 text-sm space-y-1">
+              <p><span className="text-slate-500">Contact:</span> {settings.admin_contact_name || "Admin"}</p>
+              <p><span className="text-slate-500">Telegram:</span> {settings.admin_contact_telegram || "-"}</p>
+              <p><span className="text-slate-500">Phone:</span> {settings.admin_contact_phone || "-"}</p>
+              {settings.admin_contact_note && <p className="text-slate-600 dark:text-slate-300">{settings.admin_contact_note}</p>}
+            </div>
           </Card>
         </>
       )}

@@ -26,10 +26,8 @@ export default function Admin() {
   const [adminAuthed, setAdminAuthed] = useState(false);
   const [settings, setSettings] = useState({});
   const [users, setUsers] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [logs, setLogs] = useState([]);
   const [tab, setTab] = useState("settings");
-  const [paymentFilter, setPaymentFilter] = useState("pending");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,14 +35,12 @@ export default function Admin() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [s, u, p] = await Promise.all([
+      const [s, u] = await Promise.all([
         api.adminGetSettings(),
         api.adminGetUsers(),
-        api.adminGetPayments(paymentFilter),
       ]);
       setSettings(Object.fromEntries((s.settings || []).map((x) => [x.key, x.value])));
       setUsers(u.users || []);
-      setPayments(p.payments || []);
       if (tab === "audit") {
         const l = await api.adminGetAuditLogs();
         setLogs(l.logs || []);
@@ -60,7 +56,7 @@ export default function Admin() {
   useEffect(() => {
     if (!adminAuthed) return;
     loadDashboard();
-  }, [adminAuthed, paymentFilter, tab]);
+  }, [adminAuthed, tab]);
 
   const signIn = async () => {
     setError("");
@@ -90,25 +86,15 @@ export default function Admin() {
     }
   };
 
-  const reviewPayment = async (id, status) => {
+  const setUserPaid = async (userId, isPaid, planDurationDays = null) => {
     setSaving(true);
     setError("");
     try {
-      await api.adminReviewPayment(id, { status });
-      await loadDashboard();
-    } catch {
-      setError("ອັບເດດສະຖານະບໍ່ສຳເລັດ");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const setUserPaid = async (userId, isPaid) => {
-    setSaving(true);
-    setError("");
-    try {
-      const paid_until = isPaid ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
-      await api.adminUpdateUser(userId, { is_paid: isPaid, paid_until });
+      if (planDurationDays) {
+        await api.adminUpdateUser(userId, { plan_duration_days: planDurationDays });
+      } else {
+        await api.adminUpdateUser(userId, { is_paid: isPaid, paid_until: null });
+      }
       await loadDashboard();
     } catch {
       setError("ອັບເດດ user ບໍ່ສຳເລັດ");
@@ -150,9 +136,6 @@ export default function Admin() {
               </Button>
               <Button variant={tab === "users" ? "primary" : "secondary"} size="sm" onClick={() => setTab("users")}>
                 Users
-              </Button>
-              <Button variant={tab === "payments" ? "primary" : "secondary"} size="sm" onClick={() => setTab("payments")}>
-                Payments
               </Button>
               <Button variant={tab === "audit" ? "primary" : "secondary"} size="sm" onClick={() => setTab("audit")}>
                 Audit
@@ -230,66 +213,15 @@ export default function Admin() {
                     <p className="text-xs text-slate-500">@{u.username || u.telegram_id}</p>
                     {u.paid_until && <p className="text-xs text-indigo-500">paid until: {new Date(u.paid_until).toLocaleDateString()}</p>}
                   </div>
-                  <Button
-                    variant={u.is_paid ? "secondary" : "primary"}
-                    size="sm"
-                    disabled={saving}
-                    onClick={() => setUserPaid(u.id, !u.is_paid)}
-                  >
-                    {u.is_paid ? "Set Free" : "Set Premium"}
-                  </Button>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 30)}>+1M</Button>
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 180)}>+6M</Button>
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 365)}>+1Y</Button>
+                    <Button variant="secondary" size="sm" disabled={saving} onClick={() => setUserPaid(u.id, false, null)}>Set Free</Button>
+                  </div>
                 </Card>
               ))}
             </div>
-          ) : tab === "payments" ? (
-            <Card className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="section-title">Monthly Payment Reviews</p>
-                <select
-                  value={paymentFilter}
-                  onChange={(e) => setPaymentFilter(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
-                >
-                  <option value="pending">pending</option>
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
-                </select>
-              </div>
-              {payments.length === 0 ? (
-                <p className="text-sm text-slate-500">No payment requests.</p>
-              ) : (
-                <div className="space-y-2">
-                  {payments.map((p) => (
-                    <div key={p.id} className="surface-muted p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {(p.user?.first_name || "")} {(p.user?.last_name || "")} @{p.user?.username || p.user?.telegram_id}
-                          </p>
-                          <p className="text-xs text-slate-500">{Number(p.amount_lak || 0).toLocaleString()} LAK • {p.status}</p>
-                        </div>
-                        <p className="text-xs text-slate-500">{new Date(p.created_at).toLocaleString()}</p>
-                      </div>
-                      {p.transfer_ref && <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Ref: {p.transfer_ref}</p>}
-                      {p.note && <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Note: {p.note}</p>}
-                      {p.slip_url && (
-                        <a className="mt-1 block text-xs text-indigo-600 hover:underline" href={p.slip_url} target="_blank" rel="noreferrer">
-                          Open Slip URL
-                        </a>
-                      )}
-                      <div className="mt-3 flex gap-2">
-                        <Button size="sm" disabled={saving || p.status === "approved"} onClick={() => reviewPayment(p.id, "approved")}>
-                          Approve
-                        </Button>
-                        <Button variant="secondary" size="sm" disabled={saving || p.status === "rejected"} onClick={() => reviewPayment(p.id, "rejected")}>
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
           ) : (
             <Card className="space-y-3">
               <p className="section-title">Admin Audit Logs</p>
