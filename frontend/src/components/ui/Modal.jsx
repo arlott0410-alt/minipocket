@@ -1,8 +1,14 @@
-export default function Modal({ open, onClose, children }) {
+export default function Modal({ open, onClose, children, panelClassName = "" }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 p-3 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className={`w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-slate-900 ${panelClassName}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
