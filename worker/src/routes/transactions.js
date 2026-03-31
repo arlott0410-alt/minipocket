@@ -22,6 +22,19 @@ async function getAccessibleWalletIds(supabase, userId) {
   return [...new Set([...owned, ...shared])];
 }
 
+async function canEditWallet(supabase, walletId, userId) {
+  const { data: wallet } = await supabase.from("wallets").select("owner_id").eq("id", walletId).single();
+  if (!wallet) return false;
+  if (wallet.owner_id === userId) return true;
+  const { data: member } = await supabase
+    .from("wallet_members")
+    .select("permission")
+    .eq("wallet_id", walletId)
+    .eq("user_id", userId)
+    .single();
+  return !!member && member.permission === "editor";
+}
+
 router.get("/", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
@@ -91,8 +104,10 @@ router.post("/", async (req) => {
 router.patch("/:id", async (req) => {
   const body = await req.json();
   const { supabase, user, params } = req;
-  const { data: old } = await supabase.from("transactions").select("*, wallet:wallets(owner_id,currency)").eq("id", params.id).eq("user_id", user.id).single();
+  const { data: old } = await supabase.from("transactions").select("*, wallet:wallets(owner_id,currency)").eq("id", params.id).single();
   if (!old) return Response.json({ error: "Not found" }, { status: 404 });
+  const canEdit = await canEditWallet(supabase, old.wallet_id, user.id);
+  if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
   const amount = normalizeAmount(body.amount, old.wallet?.currency);
   if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
   const oldDelta = old.type === "income" ? -Number(old.amount) : Number(old.amount);
@@ -110,7 +125,6 @@ router.patch("/:id", async (req) => {
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.id)
-    .eq("user_id", user.id)
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
@@ -119,8 +133,10 @@ router.patch("/:id", async (req) => {
 
 router.delete("/:id", async (req) => {
   const { supabase, user, params } = req;
-  const { data: tx } = await supabase.from("transactions").select("*").eq("id", params.id).eq("user_id", user.id).single();
+  const { data: tx } = await supabase.from("transactions").select("*").eq("id", params.id).single();
   if (!tx) return Response.json({ error: "Not found" }, { status: 404 });
+  const canEdit = await canEditWallet(supabase, tx.wallet_id, user.id);
+  if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
   const delta = tx.type === "income" ? -Number(tx.amount) : Number(tx.amount);
   await supabase.rpc("increment_balance", { wallet_id: tx.wallet_id, delta });
   await supabase.from("transactions").delete().eq("id", params.id);
