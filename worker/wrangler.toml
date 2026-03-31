@@ -4,3 +4,4 @@ compatibility_date = "2024-01-01"
 
 [vars]
 FRONTEND_URL = "https://kapao.armsungma.com"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiendweGhoZWtsdHJtdnNmYmF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzM1NDAsImV4cCI6MjA5MDUwOTU0MH0.I3v-WEnvkt4jdSrrvOwsRZdnJuVjWUM4ToHYsZi91NE"

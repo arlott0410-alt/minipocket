@@ -14,14 +14,34 @@ import Settings from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import HowToPay from "./pages/HowToPay";
 import Admin from "./pages/Admin";
+import Card from "./components/ui/Card";
 
 export default function App() {
   const { login, loading } = useAuthStore();
   const { colorScheme } = useTelegram();
+
+  const isTelegram = !!window.Telegram?.WebApp;
+  const isAdminRoute = window.location?.pathname?.startsWith("/admin");
+
   useEffect(() => {
-    login();
-  }, [login]);
-  if (loading) {
+    if (isTelegram) login();
+  }, [login, isTelegram]);
+
+  if (!isTelegram && !isAdminRoute) {
+    return (
+      <div className={colorScheme === "dark" ? "dark" : ""}>
+        <div className="min-h-screen max-w-md mx-auto flex items-center justify-center p-4">
+          <Card className="text-center space-y-2">
+            <div className="text-3xl">📲</div>
+            <h1 className="text-xl font-bold tracking-tight">ຕ້ອງເຂົ້າຜ່ານ Telegram ເທົ່ານັ້ນ</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">ກະລຸນາເປີດ Mini App ຜ່ານ Telegram app ຂອງທ່ານ</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isTelegram && loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="space-y-3 w-64">

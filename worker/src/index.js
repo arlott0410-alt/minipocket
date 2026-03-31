@@ -1,6 +1,7 @@
 import { Router, cors } from "itty-router";
 import { authMiddleware } from "./middleware/authMiddleware.js";
-import { adminMiddleware } from "./middleware/adminMiddleware.js";
+import { adminAuthMiddleware } from "./middleware/adminAuthMiddleware.js";
+import { createClient } from "@supabase/supabase-js";
 import walletsRouter from "./routes/wallets.js";
 import transactionsRouter from "./routes/transactions.js";
 import transfersRouter from "./routes/transfers.js";
@@ -13,7 +14,7 @@ router.all("*", (req, env) => {
   const { preflight } = cors({
     origin: env.FRONTEND_URL || "*",
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "X-Telegram-Init-Data"],
+    allowHeaders: ["Content-Type", "X-Telegram-Init-Data", "Authorization"],
   });
   return preflight(req);
 });
@@ -24,22 +25,50 @@ router.post("/api/auth/login", async (req, env) => {
   return Response.json({ user: req.user });
 });
 
-router.all("/api/*", async (req, env) => {
-  const guard = await authMiddleware(req, env);
-  if (guard) return guard;
+router.post("/api/admin/login", async (req, env) => {
+  const body = await req.json().catch(() => ({}));
+  const email = body?.email;
+  const password = body?.password;
+  if (!email || !password) return Response.json({ error: "Bad Request" }, { status: 400 });
+
+  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return Response.json({ error: "Invalid credentials" }, { status: 401 });
+
+  return Response.json({ access_token: data.session.access_token });
 });
 
-router.all("/api/wallets*", walletsRouter.fetch);
-router.all("/api/transactions*", transactionsRouter.fetch);
-router.all("/api/transfers*", transfersRouter.fetch);
-router.all("/api/reports*", reportsRouter.fetch);
-router.all("/api/users*", usersRouter.fetch);
-
-router.all("/api/admin/*", async (req) => {
-  const guard = await adminMiddleware(req);
+router.all("/api/admin/*", async (req, env) => {
+  const guard = await adminAuthMiddleware(req, env);
   if (guard) return guard;
 });
 router.all("/api/admin/*", adminRouter.fetch);
+
+router.all("/api/wallets*", async (req, env, ctx) => {
+  const guard = await authMiddleware(req, env);
+  if (guard) return guard;
+  return walletsRouter.fetch(req, env, ctx);
+});
+router.all("/api/transactions*", async (req, env, ctx) => {
+  const guard = await authMiddleware(req, env);
+  if (guard) return guard;
+  return transactionsRouter.fetch(req, env, ctx);
+});
+router.all("/api/transfers*", async (req, env, ctx) => {
+  const guard = await authMiddleware(req, env);
+  if (guard) return guard;
+  return transfersRouter.fetch(req, env, ctx);
+});
+router.all("/api/reports*", async (req, env, ctx) => {
+  const guard = await authMiddleware(req, env);
+  if (guard) return guard;
+  return reportsRouter.fetch(req, env, ctx);
+});
+router.all("/api/users*", async (req, env, ctx) => {
+  const guard = await authMiddleware(req, env);
+  if (guard) return guard;
+  return usersRouter.fetch(req, env, ctx);
+});
 
 router.all("*", () => new Response("Not Found", { status: 404 }));
 
@@ -48,7 +77,7 @@ export default {
     const { corsify } = cors({
       origin: env.FRONTEND_URL || "*",
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-      allowHeaders: ["Content-Type", "X-Telegram-Init-Data"],
+      allowHeaders: ["Content-Type", "X-Telegram-Init-Data", "Authorization"],
     });
     return router.fetch(req, env, ctx).then(corsify);
   },

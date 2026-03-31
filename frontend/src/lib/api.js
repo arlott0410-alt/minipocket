@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_WORKER_URL;
+let adminAccessToken = null;
 
 function getInitData() {
   if (window.Telegram?.WebApp?.initData) return window.Telegram.WebApp.initData;
@@ -11,6 +12,7 @@ async function request(path, options = {}) {
     headers: {
       "Content-Type": "application/json",
       "X-Telegram-Init-Data": getInitData(),
+      ...(adminAccessToken ? { Authorization: `Bearer ${adminAccessToken}` } : {}),
       ...(options.headers || {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -39,6 +41,7 @@ export const api = {
   getChart: (months = 6) => request(`/api/reports/chart?months=${months}`),
   getByCategory: (month, type) => request(`/api/reports/by-category?month=${month}&type=${type}`),
   getSettings: () => request("/api/users/settings"),
+  adminLogin: (body) => request("/api/admin/login", { method: "POST", body }),
   adminGetSettings: () => request("/api/admin/settings"),
   adminSaveSettings: (body) => request("/api/admin/settings", { method: "POST", body }),
   adminGetUsers: () => request("/api/admin/users"),
@@ -49,3 +52,7 @@ export const api = {
   adminCreateCategory: (body) => request("/api/admin/categories", { method: "POST", body }),
   adminUpdateCategory: (id, body) => request(`/api/admin/categories/${id}`, { method: "PATCH", body }),
 };
+
+export function setAdminAccessToken(token) {
+  adminAccessToken = token;
+}

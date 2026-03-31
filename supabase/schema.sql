@@ -135,3 +135,10 @@ create or replace function increment_balance(wallet_id uuid, delta numeric)
 returns void language sql as $$
   update wallets set balance = balance + delta, updated_at = now() where id = wallet_id;
 $$;
+
+-- Admin emails (email+password login via Supabase Auth)
+create table if not exists admin_emails (
+  email text primary key
+);
+
+alter table admin_emails enable row level security;
