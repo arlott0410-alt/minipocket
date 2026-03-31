@@ -74,11 +74,11 @@ export default function AddTransaction() {
           <Input
             type="text"
             inputMode="decimal"
-            placeholder="Amount"
+            placeholder={t("common.amount")}
             value={form.amount}
             onChange={(e) => setForm((s) => ({ ...s, amount: formatAmountInput(e.target.value, amountPrecision) }))}
           />
-          <Input placeholder="Note" value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} />
+          <Input placeholder={t("common.note")} value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} />
           <Button onClick={submit} className="w-full" disabled={saving}>{saving ? t("common.loading") : t("common.save")}</Button>
         </Card>
       )}

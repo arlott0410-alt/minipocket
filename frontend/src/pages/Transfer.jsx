@@ -160,7 +160,7 @@ export default function Transfer() {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(generated);
       } else {
-        window.prompt("Copy this link", generated);
+        window.prompt(t("transfer.copy_prompt"), generated);
       }
       await openShareDetail(shareWalletId);
       await loadAll();
@@ -206,7 +206,7 @@ export default function Transfer() {
   };
 
   const removeMember = async (walletId, userId) => {
-    if (!window.confirm("Remove this member?")) return;
+    if (!window.confirm(t("transfer.confirm_remove_member"))) return;
     setSaving(true);
     try {
       await api.revokeAccess(walletId, userId);
@@ -218,7 +218,7 @@ export default function Transfer() {
   };
 
   const cancelInvite = async (walletId, inviteId) => {
-    if (!window.confirm("Cancel this invite?")) return;
+    if (!window.confirm(t("transfer.confirm_cancel_invite"))) return;
     setSaving(true);
     try {
       await api.cancelShareInvite(walletId, inviteId);
@@ -230,7 +230,7 @@ export default function Transfer() {
   };
 
   const disableLink = async (walletId, linkId) => {
-    if (!window.confirm("Disable this link?")) return;
+    if (!window.confirm(t("transfer.confirm_disable_link"))) return;
     setSaving(true);
     try {
       await api.revokeShareLink(walletId, linkId);
@@ -242,7 +242,7 @@ export default function Transfer() {
   };
 
   const deleteWallet = async (walletId) => {
-    if (!window.confirm("Delete this wallet? This will archive it.")) return;
+    if (!window.confirm(t("wallet.confirm_delete"))) return;
     setSaving(true);
     setError("");
     try {
@@ -289,7 +289,7 @@ export default function Transfer() {
                       {t("transfer.share_wallet")}
                     </Button>
                     <Button size="sm" variant="danger" className="w-full" disabled={saving} onClick={() => deleteWallet(w.id)}>
-                      Delete Wallet
+                      {t("wallet.delete")}
                     </Button>
                   </div>
                 ) : null}

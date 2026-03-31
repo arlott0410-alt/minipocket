@@ -53,7 +53,7 @@ export default function WalletDetail() {
     if (!editingTx) return;
     const amountNumber = parseAmountInput(txForm.amount);
     if (amountNumber <= 0) {
-      setError("Invalid amount");
+      setError(t("common.invalid_amount"));
       return;
     }
     try {
@@ -68,19 +68,19 @@ export default function WalletDetail() {
       setEditingTx(null);
       await load();
     } catch (e) {
-      setError(e?.error || "Unable to update transaction");
+      setError(e?.error || t("transaction.update_failed"));
     }
   };
 
   const deleteTx = async (txId) => {
-    const ok = window.confirm("Delete this transaction?");
+    const ok = window.confirm(t("transaction.confirm_delete"));
     if (!ok) return;
     await api.deleteTransaction(txId);
     await load();
   };
 
   const deleteWallet = async () => {
-    const ok = window.confirm("Delete this wallet? This will archive it.");
+    const ok = window.confirm(t("wallet.confirm_delete"));
     if (!ok) return;
     await api.deleteWallet(id);
     navigate("/");
@@ -95,7 +95,7 @@ export default function WalletDetail() {
           <Skeleton className="h-12 rounded-xl" />
         </div>
       ) : !wallet ? (
-        <EmptyState icon="❓" title="Wallet not found" desc="Please go back and choose another wallet." />
+        <EmptyState icon="❓" title={t("wallet.not_found_title")} desc={t("wallet.not_found_desc")} />
       ) : (
         <>
           <div className="surface-card p-4">
@@ -104,7 +104,7 @@ export default function WalletDetail() {
             <p className="text-2xl font-bold mt-2" style={{ color: wallet.color }}>{formatDisplayAmount(wallet.balance || 0, wallet.currency)}</p>
             {canDeleteWallet && (
               <div className="mt-3">
-                <Button variant="danger" size="sm" onClick={deleteWallet}>Delete Wallet</Button>
+                <Button variant="danger" size="sm" onClick={deleteWallet}>{t("wallet.delete")}</Button>
               </div>
             )}
           </div>
@@ -113,21 +113,21 @@ export default function WalletDetail() {
               transactions={transactions}
               renderActions={(tx) => (
                 <div className="flex gap-2 justify-end">
-                  <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>Edit</button>
-                  <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>Delete</button>
+                  <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>{t("common.edit")}</button>
+                  <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>{t("common.delete")}</button>
                 </div>
               )}
             />
           ) : (
-            <EmptyState icon="📋" title="No transactions yet" desc="Start adding transactions for this wallet." />
+            <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />
           )}
         </>
       )}
-      <Button onClick={() => navigate("/add-transaction")} className="w-full">Add Transaction</Button>
+      <Button onClick={() => navigate("/add-transaction")} className="w-full">{t("transaction.add_title")}</Button>
 
       <Modal open={!!editingTx} onClose={() => setEditingTx(null)} panelClassName="border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-amber-100">Edit Transaction</h3>
+          <h3 className="text-lg font-semibold text-amber-100">{t("transaction.edit_title")}</h3>
           {error ? <p className="rounded-lg border border-rose-500/40 bg-rose-900/20 p-2 text-xs text-rose-200">{error}</p> : null}
           <Select value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))}>
             <option value="income">{t("transaction.type_income")}</option>
@@ -138,13 +138,13 @@ export default function WalletDetail() {
             inputMode="decimal"
             value={txForm.amount}
             onChange={(e) => setTxForm((s) => ({ ...s, amount: formatAmountInput(e.target.value, precisionByCurrency(wallet?.currency)) }))}
-            placeholder="Amount"
+            placeholder={t("common.amount")}
           />
           <Input type="date" value={txForm.transaction_date} onChange={(e) => setTxForm((s) => ({ ...s, transaction_date: e.target.value }))} />
-          <Input value={txForm.note} onChange={(e) => setTxForm((s) => ({ ...s, note: e.target.value }))} placeholder="Note" />
+          <Input value={txForm.note} onChange={(e) => setTxForm((s) => ({ ...s, note: e.target.value }))} placeholder={t("common.note")} />
           <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={() => setEditingTx(null)}>Cancel</Button>
-            <Button className="flex-1" onClick={saveEditTx}>Save</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => setEditingTx(null)}>{t("common.cancel")}</Button>
+            <Button className="flex-1" onClick={saveEditTx}>{t("common.save")}</Button>
           </div>
         </div>
       </Modal>
