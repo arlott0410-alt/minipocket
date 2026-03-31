@@ -34,7 +34,7 @@ export default function App() {
   }
   return (
     <div className={colorScheme === "dark" ? "dark" : ""}>
-      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen max-w-md mx-auto relative">
+      <div className="min-h-screen max-w-md mx-auto relative bg-slate-100 dark:bg-slate-950">
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />

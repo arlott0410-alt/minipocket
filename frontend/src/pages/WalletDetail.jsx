@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import Skeleton from "../components/ui/Skeleton";
 import EmptyState from "../components/ui/EmptyState";
 import TransactionList from "../components/transaction/TransactionList";
+import Button from "../components/ui/Button";
 
 export default function WalletDetail() {
   const { id } = useParams();
@@ -37,9 +38,9 @@ export default function WalletDetail() {
         <EmptyState icon="❓" title="Wallet not found" desc="Please go back and choose another wallet." />
       ) : (
         <>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4">
-            <p className="text-sm text-gray-500">{wallet.currency}</p>
-            <h1 className="text-xl font-bold mt-1">{wallet.icon} {wallet.name}</h1>
+          <div className="surface-card p-4">
+            <p className="text-sm text-slate-500 dark:text-slate-400">{wallet.currency}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{wallet.icon} {wallet.name}</h1>
             <p className="text-2xl font-bold mt-2" style={{ color: wallet.color }}>{Number(wallet.balance || 0).toLocaleString()}</p>
           </div>
           {transactions.length ? (
@@ -49,9 +50,7 @@ export default function WalletDetail() {
           )}
         </>
       )}
-      <button onClick={() => navigate("/add-transaction")} className="w-full rounded-xl bg-indigo-600 text-white py-2.5 font-medium">
-        Add Transaction
-      </button>
+      <Button onClick={() => navigate("/add-transaction")} className="w-full">Add Transaction</Button>
     </div>
   );
 }

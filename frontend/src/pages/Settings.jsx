@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
 
 export default function Settings() {
   const { i18n } = useTranslation();
@@ -7,12 +9,15 @@ export default function Settings() {
     localStorage.setItem("lang", lang);
   };
   return (
-    <div className="pb-24 pt-4 px-4 space-y-3">
-      <h1 className="text-xl font-bold">Settings</h1>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 space-y-2">
-        <button className="w-full border rounded-xl py-2" onClick={() => setLang("lo")}>ພາສາລາວ</button>
-        <button className="w-full border rounded-xl py-2" onClick={() => setLang("en")}>English</button>
-      </div>
+    <div className="pb-24 pt-4 px-4 space-y-4">
+      <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+      <Card className="space-y-3">
+        <p className="label">Language</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant={i18n.language === "lo" ? "primary" : "secondary"} onClick={() => setLang("lo")} className="w-full">ພາສາລາວ</Button>
+          <Button variant={i18n.language === "en" ? "primary" : "secondary"} onClick={() => setLang("en")} className="w-full">English</Button>
+        </div>
+      </Card>
     </div>
   );
 }

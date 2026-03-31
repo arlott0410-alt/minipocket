@@ -3,4 +3,4 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 
 [vars]
-FRONTEND_URL = "https://your-pages-app.pages.dev"
+FRONTEND_URL = "https://kapao.armsungma.com"
