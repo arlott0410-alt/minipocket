@@ -21,6 +21,13 @@ const BRAND_PRESETS = [
   "#7c3aed",
 ];
 
+const HIDDEN_SETTING_KEYS = new Set([
+  "payment_bank_name",
+  "payment_account_number",
+  "payment_account_name",
+  "payment_instructions",
+]);
+
 export default function Admin() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -42,6 +49,8 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const formatSettingLabel = (key) => t(`admin.settings_keys.${key}`, { defaultValue: key });
+
   const loadDashboard = async () => {
     setLoading(true);
     try {
@@ -59,7 +68,7 @@ export default function Admin() {
       }
       setError("");
     } catch {
-      setError("Forbidden");
+      setError(t("admin.errors.forbidden"));
     } finally {
       setLoading(false);
     }
@@ -79,7 +88,7 @@ export default function Admin() {
       setAdminAccessToken(res.access_token);
       setAdminAuthed(true);
     } catch (e) {
-      setError("ອີເມວ/ລະຫັດຜິດ");
+      setError(t("admin.errors.invalid_credentials"));
     } finally {
       setSaving(false);
     }
@@ -92,7 +101,7 @@ export default function Admin() {
       await api.adminSaveSettings(settings);
       await loadDashboard();
     } catch (e) {
-      setError("ບໍ່ສາມາດບັນທຶກໄດ້");
+      setError(t("admin.errors.save_failed"));
     } finally {
       setSaving(false);
     }
@@ -109,7 +118,7 @@ export default function Admin() {
       }
       await loadDashboard();
     } catch {
-      setError("ອັບເດດ user ບໍ່ສຳເລັດ");
+      setError(t("admin.errors.user_update_failed"));
     } finally {
       setSaving(false);
     }
@@ -155,18 +164,18 @@ export default function Admin() {
 
       {!adminAuthed ? (
         <Card className="space-y-3">
-          <p className="label">Login</p>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="ລະຫັດ" />
+          <p className="label">{t("admin.login.title")}</p>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("admin.login.email")} />
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("admin.login.password")} />
           {error && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
               {error}
             </div>
           )}
           <Button onClick={signIn} className="w-full" disabled={saving}>
-            {saving ? "Signing in..." : "ເຂົ້າສູ່ระบบ"}
+            {saving ? t("admin.login.signing_in") : t("admin.login.sign_in")}
           </Button>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Admin ตั้งค่าเว็บได้เฉพาะผู้ที่ได้รับอนุญาตเท่านั้น</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t("admin.login.hint")}</p>
         </Card>
       ) : loading ? (
         <div className="space-y-3">
@@ -198,16 +207,16 @@ export default function Admin() {
                 setAdminAuthed(false);
               }}
             >
-              Logout
+              {t("admin.logout")}
             </Button>
           </div>
 
           {tab === "settings" ? (
             <Card className="space-y-3">
-              <p className="section-title">App Settings</p>
-              {Object.entries(settings).map(([key, value]) => (
+              <p className="section-title">{t("admin.settings_title")}</p>
+              {Object.entries(settings).filter(([key]) => !HIDDEN_SETTING_KEYS.has(key)).map(([key, value]) => (
                 <div key={key} className="space-y-1">
-                  <label className="text-xs text-slate-500 dark:text-slate-400">{key}</label>
+                  <label className="text-xs text-slate-500 dark:text-slate-400">{formatSettingLabel(key)}</label>
                   {key === "primary_color" ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
@@ -216,7 +225,7 @@ export default function Admin() {
                           value={value || "#6366f1"}
                           onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))}
                           className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-700 dark:bg-slate-900"
-                          aria-label="Primary color picker"
+                          aria-label={t("admin.primary_color_picker")}
                         />
                         <Input
                           value={value}
@@ -250,7 +259,7 @@ export default function Admin() {
                 </div>
               )}
               <Button onClick={save} className="w-full" disabled={saving}>
-                {saving ? "Saving..." : t("common.save")}
+                {saving ? t("admin.saving") : t("common.save")}
               </Button>
             </Card>
           ) : tab === "users" ? (
@@ -261,33 +270,33 @@ export default function Admin() {
                     <p className="text-sm font-semibold text-amber-100">{u.first_name} {u.last_name || ""}</p>
                     <p className="text-xs text-amber-200/70">@{u.username || u.telegram_id}</p>
                     {u.paid_until && (
-                      <p className="text-xs text-amber-300/90">paid until: {new Date(u.paid_until).toLocaleDateString()}</p>
+                      <p className="text-xs text-amber-300/90">{t("admin.users.paid_until")} {new Date(u.paid_until).toLocaleDateString()}</p>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
                     <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 30)}>+1M</Button>
                     <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 180)}>+6M</Button>
                     <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 365)}>+1Y</Button>
-                    <Button variant="secondary" size="sm" disabled={saving} onClick={() => setUserPaid(u.id, false, null)}>Set Free</Button>
+                    <Button variant="secondary" size="sm" disabled={saving} onClick={() => setUserPaid(u.id, false, null)}>{t("admin.users.set_free")}</Button>
                   </div>
                 </Card>
               ))}
             </div>
           ) : tab === "categories" ? (
             <Card className="space-y-4">
-              <p className="section-title text-amber-100">Income/Expense Categories</p>
+              <p className="section-title text-amber-100">{t("admin.categories.title")}</p>
               <div className="grid grid-cols-2 gap-2">
-                <Input placeholder="name_lo" value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
-                <Input placeholder="name_en" value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
-                <Input placeholder="emoji" value={newCategory.emoji} onChange={(e) => setNewCategory((s) => ({ ...s, emoji: e.target.value }))} />
+                <Input placeholder={t("admin.categories.name_lo")} value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
+                <Input placeholder={t("admin.categories.name_en")} value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
+                <Input placeholder={t("admin.categories.emoji")} value={newCategory.emoji} onChange={(e) => setNewCategory((s) => ({ ...s, emoji: e.target.value }))} />
                 <select
                   value={newCategory.type}
                   onChange={(e) => setNewCategory((s) => ({ ...s, type: e.target.value }))}
                   className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900"
                 >
-                  <option value="income">income</option>
-                  <option value="expense">expense</option>
-                  <option value="both">both</option>
+                  <option value="income">{t("transaction.type_income")}</option>
+                  <option value="expense">{t("transaction.type_expense")}</option>
+                  <option value="both">{t("admin.categories.type_both")}</option>
                 </select>
               </div>
               <Button onClick={createCategory} disabled={saving} className="w-full">{t("wallet.add")}</Button>
@@ -296,10 +305,10 @@ export default function Admin() {
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-amber-100">{cat.emoji} {cat.name_lo} / {cat.name_en}</p>
-                      <p className="text-xs text-amber-200/70">type: {cat.type}</p>
+                      <p className="text-xs text-amber-200/70">{t("admin.categories.type_label")} {cat.type}</p>
                     </div>
                     <Button variant={cat.is_active ? "secondary" : "primary"} size="sm" disabled={saving} onClick={() => toggleCategoryActive(cat)}>
-                      {cat.is_active ? "Disable" : "Enable"}
+                      {cat.is_active ? t("admin.categories.disable") : t("admin.categories.enable")}
                     </Button>
                   </div>
                 ))}
@@ -307,9 +316,9 @@ export default function Admin() {
             </Card>
           ) : (
             <Card className="space-y-3">
-              <p className="section-title text-amber-100">Admin Audit Logs</p>
+              <p className="section-title text-amber-100">{t("admin.audit.title")}</p>
               {logs.length === 0 ? (
-                <p className="text-sm text-amber-200/70">No logs available.</p>
+                <p className="text-sm text-amber-200/70">{t("admin.audit.empty")}</p>
               ) : (
                 <div className="space-y-2">
                   {logs.map((log) => (
