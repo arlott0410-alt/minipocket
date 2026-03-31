@@ -1,0 +1,16 @@
+---
+description: Keep SQL changes in new migration files
+alwaysApply: true
+---
+
+# SQL Migration Convention
+
+- Never append new SQL changes into existing migration/history files.
+- For every new DB change, create a new file in `supabase/migrations/`.
+- Use sortable timestamp naming: `YYYYMMDDHHMM_<short_description>.sql`.
+- Keep each migration focused on one concern (schema change, seed update, index, etc).
+- If a change also needs manual notes, add them to `README.md` without duplicating SQL.
+
+Example:
+
+- `supabase/migrations/202603311410_add_payment_requests.sql`
