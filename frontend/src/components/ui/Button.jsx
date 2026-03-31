@@ -1,6 +1,6 @@
 const variants = {
-  primary: "bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 shadow-sm shadow-indigo-500/25",
-  secondary: "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800",
+  primary: "bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-neutral-900 hover:brightness-110 active:brightness-95 shadow-md shadow-amber-500/25",
+  secondary: "bg-neutral-900 text-amber-100 border border-amber-500/35 hover:bg-neutral-800",
   danger: "bg-rose-600 text-white hover:bg-rose-500 active:bg-rose-700 shadow-sm shadow-rose-500/25",
 };
 

@@ -33,8 +33,8 @@ export default function Home() {
   return (
     <div className="pb-24 pt-4 px-4 space-y-5">
       <div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t("home.greeting")}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{user?.first_name} 👋</h1>
+        <p className="text-sm text-amber-300/75">{t("home.greeting")}</p>
+        <h1 className="text-3xl font-bold tracking-tight text-amber-100">{user?.first_name} 👋</h1>
       </div>
       <SummaryCards wallets={wallets} loading={loading} />
       <div className="flex justify-between items-center">
@@ -53,12 +53,12 @@ export default function Home() {
       ) : (
         <div className="space-y-3">{wallets.map((w) => <WalletCard key={w.id} wallet={w} onClick={() => navigate(`/wallet/${w.id}`)} />)}</div>
       )}
-      <div className="surface-card divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="surface-card divide-y divide-amber-500/10">
         {recentTxs.length ? recentTxs.map((tx) => <TransactionItem key={tx.id} transaction={tx} />) : <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />}
       </div>
       <button
         onClick={() => navigate("/add-transaction")}
-        className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-3xl leading-none text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-500"
+        className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-3xl leading-none text-neutral-900 shadow-xl shadow-amber-500/30 transition hover:brightness-110"
       >
         +
       </button>

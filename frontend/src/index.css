@@ -3,23 +3,23 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased;
+  @apply bg-neutral-950 text-amber-50 antialiased;
 }
 
 @layer components {
   .surface-card {
-    @apply bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm;
+    @apply rounded-2xl border border-amber-500/25 bg-gradient-to-b from-neutral-900 to-neutral-950 shadow-lg shadow-black/35;
   }
 
   .surface-muted {
-    @apply bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl;
+    @apply rounded-xl border border-amber-500/20 bg-neutral-900/80;
   }
 
   .section-title {
-    @apply text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+    @apply text-base font-semibold tracking-tight text-amber-100;
   }
 
   .label {
-    @apply text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400;
+    @apply text-xs font-medium uppercase tracking-wide text-amber-400/80;
   }
 }

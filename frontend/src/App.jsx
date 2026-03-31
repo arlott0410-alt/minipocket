@@ -80,7 +80,7 @@ export default function App() {
   }
   return (
     <div className={colorScheme === "dark" ? "dark" : ""}>
-      <div className="min-h-screen max-w-md mx-auto relative bg-slate-100 dark:bg-slate-950">
+      <div className="min-h-screen max-w-md mx-auto relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-black">
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
