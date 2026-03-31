@@ -2,6 +2,26 @@ import { Router } from "itty-router";
 
 const router = Router({ base: "/api/transactions" });
 
+function precisionByCurrency(currency) {
+  return currency === "LAK" ? 0 : 2;
+}
+
+function normalizeAmount(amount, currency) {
+  const n = Number(amount);
+  const precision = precisionByCurrency(currency);
+  return Number.isFinite(n) ? Number(n.toFixed(precision)) : NaN;
+}
+
+async function getAccessibleWalletIds(supabase, userId) {
+  const [ownedRes, memberRes] = await Promise.all([
+    supabase.from("wallets").select("id").eq("owner_id", userId).eq("is_archived", false),
+    supabase.from("wallet_members").select("wallet_id").eq("user_id", userId),
+  ]);
+  const owned = (ownedRes.data || []).map((x) => x.id);
+  const shared = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  return [...new Set([...owned, ...shared])];
+}
+
 router.get("/", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
@@ -12,11 +32,14 @@ router.get("/", async (req) => {
   const category_id = u.searchParams.get("category_id");
   const limit = Number(u.searchParams.get("limit") || 50);
   const offset = Number(u.searchParams.get("offset") || 0);
+  const walletIds = await getAccessibleWalletIds(supabase, user.id);
+  if (!walletIds.length) return Response.json({ transactions: [], total: 0 });
+  if (wallet_id && !walletIds.includes(wallet_id)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let q = supabase
     .from("transactions")
     .select("*, category:categories(name_lo,name_en,emoji), wallet:wallets(name,currency,color)", { count: "exact" })
-    .eq("user_id", user.id)
+    .in("wallet_id", walletIds)
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
@@ -33,7 +56,7 @@ router.get("/", async (req) => {
 router.post("/", async (req) => {
   const body = await req.json();
   const { supabase, user } = req;
-  const { data: wallet } = await supabase.from("wallets").select("owner_id").eq("id", body.wallet_id).single();
+  const { data: wallet } = await supabase.from("wallets").select("owner_id,currency").eq("id", body.wallet_id).single();
   if (!wallet) return Response.json({ error: "wallet_not_found" }, { status: 404 });
   if (wallet.owner_id !== user.id) {
     const { data: member } = await supabase
@@ -44,7 +67,8 @@ router.post("/", async (req) => {
       .single();
     if (!member || member.permission !== "editor") return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  const amount = Number(Number(body.amount).toFixed(4));
+  const amount = normalizeAmount(body.amount, wallet.currency);
+  if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
   const { data: tx, error } = await supabase
     .from("transactions")
     .insert({
@@ -67,9 +91,10 @@ router.post("/", async (req) => {
 router.patch("/:id", async (req) => {
   const body = await req.json();
   const { supabase, user, params } = req;
-  const { data: old } = await supabase.from("transactions").select("*").eq("id", params.id).eq("user_id", user.id).single();
+  const { data: old } = await supabase.from("transactions").select("*, wallet:wallets(owner_id,currency)").eq("id", params.id).eq("user_id", user.id).single();
   if (!old) return Response.json({ error: "Not found" }, { status: 404 });
-  const amount = Number(Number(body.amount).toFixed(4));
+  const amount = normalizeAmount(body.amount, old.wallet?.currency);
+  if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
   const oldDelta = old.type === "income" ? -Number(old.amount) : Number(old.amount);
   const newDelta = body.type === "income" ? amount : -amount;
   await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: oldDelta });

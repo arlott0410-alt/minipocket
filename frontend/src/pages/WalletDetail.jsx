@@ -116,7 +116,7 @@ export default function WalletDetail() {
       )}
       <Button onClick={() => navigate("/add-transaction")} className="w-full">Add Transaction</Button>
 
-      <Modal open={!!editingTx} onClose={() => setEditingTx(null)} panelClassName="p-4">
+      <Modal open={!!editingTx} onClose={() => setEditingTx(null)} panelClassName="border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-amber-100">Edit Transaction</h3>
           <Select value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))}>

@@ -2,6 +2,16 @@ import { Router } from "itty-router";
 
 const router = Router({ base: "/api/reports" });
 
+async function getAccessibleWalletIds(supabase, userId) {
+  const [ownedRes, memberRes] = await Promise.all([
+    supabase.from("wallets").select("id").eq("owner_id", userId).eq("is_archived", false),
+    supabase.from("wallet_members").select("wallet_id").eq("user_id", userId),
+  ]);
+  const owned = (ownedRes.data || []).map((x) => x.id);
+  const shared = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  return [...new Set([...owned, ...shared])];
+}
+
 function getRangeFromQuery(query) {
   const period = query.get("period") || "month"; // day | month | year
   const dateInput = query.get("date") || new Date().toISOString().slice(0, 10);
@@ -90,10 +100,13 @@ router.get("/summary", async (req) => {
   const u = new URL(req.url);
   const range = getRangeFromQuery(u.searchParams);
   const walletId = u.searchParams.get("wallet_id");
+  const walletIds = await getAccessibleWalletIds(supabase, user.id);
+  if (!walletIds.length) return Response.json({ period: range.period, label: range.label, income: 0, expense: 0, net: 0, currency_summaries: [] });
+  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
   let q = supabase
     .from("transactions")
     .select("type, amount, wallet:wallets(currency)")
-    .eq("user_id", user.id)
+    .in("wallet_id", walletIds)
     .gte("transaction_date", range.from)
     .lte("transaction_date", range.to);
   if (walletId) q = q.eq("wallet_id", walletId);
@@ -123,11 +136,14 @@ router.get("/chart", async (req) => {
   const u = new URL(req.url);
   const range = getRangeFromQuery(u.searchParams);
   const walletId = u.searchParams.get("wallet_id");
+  const walletIds = await getAccessibleWalletIds(supabase, user.id);
+  if (!walletIds.length) return Response.json({ chart: [], chart_by_currency: {}, currencies: [], period: range.period, label: range.label });
+  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let q = supabase
     .from("transactions")
     .select("type, amount, transaction_date, wallet:wallets(currency)")
-    .eq("user_id", user.id)
+    .in("wallet_id", walletIds)
     .gte("transaction_date", range.from)
     .lte("transaction_date", range.to);
   if (walletId) q = q.eq("wallet_id", walletId);
@@ -152,10 +168,13 @@ router.get("/by-category", async (req) => {
   const range = getRangeFromQuery(u.searchParams);
   const type = u.searchParams.get("type") || "expense";
   const walletId = u.searchParams.get("wallet_id");
+  const walletIds = await getAccessibleWalletIds(supabase, user.id);
+  if (!walletIds.length) return Response.json({ categories: [], categories_by_currency: {} });
+  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
   let q = supabase
     .from("transactions")
     .select("amount, category:categories(name_lo,name_en,emoji), wallet:wallets(currency)")
-    .eq("user_id", user.id)
+    .in("wallet_id", walletIds)
     .eq("type", type)
     .gte("transaction_date", range.from)
     .lte("transaction_date", range.to);
