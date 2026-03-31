@@ -50,6 +50,7 @@ export const api = {
   adminUpdateUser: (id, body) => request(`/api/admin/users/${id}`, { method: "PATCH", body }),
   adminGetPayments: (status = "") => request(`/api/admin/payments${status ? `?status=${status}` : ""}`),
   adminReviewPayment: (id, body) => request(`/api/admin/payments/${id}`, { method: "PATCH", body }),
+  adminGetAuditLogs: () => request("/api/admin/audit-logs"),
   adminGetCurrencies: () => request("/api/admin/currencies"),
   adminCreateCurrency: (body) => request("/api/admin/currencies", { method: "POST", body }),
   adminGetCategories: () => request("/api/admin/categories"),

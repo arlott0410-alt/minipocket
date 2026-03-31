@@ -1,6 +1,7 @@
 import { Router, cors } from "itty-router";
 import { authMiddleware } from "./middleware/authMiddleware.js";
 import { adminAuthMiddleware } from "./middleware/adminAuthMiddleware.js";
+import { rateLimitMiddleware } from "./middleware/rateLimitMiddleware.js";
 import { createClient } from "@supabase/supabase-js";
 import walletsRouter from "./routes/wallets.js";
 import transactionsRouter from "./routes/transactions.js";
@@ -20,12 +21,16 @@ router.all("*", (req, env) => {
 });
 
 router.post("/api/auth/login", async (req, env) => {
+  const limit = rateLimitMiddleware(req, env, { scope: "auth_login", max: 30, windowMs: 60_000 });
+  if (limit) return limit;
   const guard = await authMiddleware(req, env);
   if (guard) return guard;
   return Response.json({ user: req.user });
 });
 
 router.post("/api/admin/login", async (req, env) => {
+  const limit = rateLimitMiddleware(req, env, { scope: "admin_login", max: 10, windowMs: 60_000 });
+  if (limit) return limit;
   const body = await req.json().catch(() => ({}));
   const email = body?.email;
   const password = body?.password;
@@ -43,6 +48,8 @@ router.post("/api/admin/login", async (req, env) => {
 });
 
 router.all("/api/admin/*", async (req, env) => {
+  const limit = rateLimitMiddleware(req, env, { scope: "admin_api", max: 300, windowMs: 60_000 });
+  if (limit) return limit;
   const guard = await adminAuthMiddleware(req, env);
   if (guard) return guard;
 });

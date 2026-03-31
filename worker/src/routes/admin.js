@@ -2,6 +2,18 @@ import { Router } from "itty-router";
 
 const router = Router({ base: "/api/admin" });
 
+async function logAdminAction(req, action, payload = {}) {
+  try {
+    await req.supabase.from("admin_audit_logs").insert({
+      admin_email: req.admin?.email || "unknown",
+      action,
+      payload,
+    });
+  } catch {
+    // Keep admin operations non-blocking even if audit table migration is pending.
+  }
+}
+
 router.get("/settings", async (req) => {
   const { data } = await req.supabase.from("settings").select("*").order("key");
   return Response.json({ settings: data || [] });
@@ -11,6 +23,7 @@ router.post("/settings", async (req) => {
   const updates = Object.entries(body).map(([key, value]) => ({ key, value: String(value), updated_at: new Date().toISOString() }));
   const { error } = await req.supabase.from("settings").upsert(updates);
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  await logAdminAction(req, "settings.bulk_update", { keys: Object.keys(body) });
   return Response.json({ success: true });
 });
 router.get("/users", async (req) => {
@@ -24,6 +37,11 @@ router.patch("/users/:id", async (req) => {
     .update({ is_paid: body.is_paid, paid_until: body.paid_until || null })
     .eq("id", req.params.id);
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  await logAdminAction(req, "users.subscription_update", {
+    user_id: req.params.id,
+    is_paid: body.is_paid,
+    paid_until: body.paid_until || null,
+  });
   return Response.json({ success: true });
 });
 router.get("/currencies", async (req) => {
@@ -34,6 +52,7 @@ router.post("/currencies", async (req) => {
   const body = await req.json();
   const { data, error } = await req.supabase.from("currencies").insert(body).select().single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  await logAdminAction(req, "currencies.create", { code: data.code });
   return Response.json({ currency: data }, { status: 201 });
 });
 router.get("/categories", async (req) => {
@@ -44,12 +63,14 @@ router.post("/categories", async (req) => {
   const body = await req.json();
   const { data, error } = await req.supabase.from("categories").insert(body).select().single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  await logAdminAction(req, "categories.create", { id: data.id, name_en: data.name_en });
   return Response.json({ category: data }, { status: 201 });
 });
 router.patch("/categories/:id", async (req) => {
   const body = await req.json();
   const { data, error } = await req.supabase.from("categories").update(body).eq("id", req.params.id).select().single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  await logAdminAction(req, "categories.update", { id: req.params.id, fields: Object.keys(body || {}) });
   return Response.json({ category: data });
 });
 
@@ -65,6 +86,16 @@ router.get("/payments", async (req) => {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 400 });
   return Response.json({ payments: data || [] });
+});
+
+router.get("/audit-logs", async (req) => {
+  const { data, error } = await req.supabase
+    .from("admin_audit_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  return Response.json({ logs: data || [] });
 });
 
 router.patch("/payments/:id", async (req) => {
@@ -100,6 +131,12 @@ router.patch("/payments/:id", async (req) => {
     const paidUntil = new Date(Date.now() + paidDays * 24 * 60 * 60 * 1000).toISOString();
     await req.supabase.from("users").update({ is_paid: true, paid_until: paidUntil }).eq("id", payment.user_id);
   }
+
+  await logAdminAction(req, "payments.review", {
+    payment_id: req.params.id,
+    status: nextStatus,
+    user_id: payment.user_id,
+  });
 
   return Response.json({ payment: updated });
 });

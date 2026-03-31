@@ -12,6 +12,7 @@ export default function Admin() {
   const [settings, setSettings] = useState({});
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [tab, setTab] = useState("settings");
   const [paymentFilter, setPaymentFilter] = useState("pending");
   const [error, setError] = useState("");
@@ -29,6 +30,10 @@ export default function Admin() {
       setSettings(Object.fromEntries((s.settings || []).map((x) => [x.key, x.value])));
       setUsers(u.users || []);
       setPayments(p.payments || []);
+      if (tab === "audit") {
+        const l = await api.adminGetAuditLogs();
+        setLogs(l.logs || []);
+      }
       setError("");
     } catch {
       setError("Forbidden");
@@ -40,7 +45,7 @@ export default function Admin() {
   useEffect(() => {
     if (!adminAuthed) return;
     loadDashboard();
-  }, [adminAuthed, paymentFilter]);
+  }, [adminAuthed, paymentFilter, tab]);
 
   const signIn = async () => {
     setError("");
@@ -134,6 +139,9 @@ export default function Admin() {
               <Button variant={tab === "payments" ? "primary" : "secondary"} size="sm" onClick={() => setTab("payments")}>
                 Payments
               </Button>
+              <Button variant={tab === "audit" ? "primary" : "secondary"} size="sm" onClick={() => setTab("audit")}>
+                Audit
+              </Button>
             </div>
             <Button
               variant="secondary"
@@ -185,7 +193,7 @@ export default function Admin() {
                 </Card>
               ))}
             </div>
-          ) : (
+          ) : tab === "payments" ? (
             <Card className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="section-title">Monthly Payment Reviews</p>
@@ -229,6 +237,25 @@ export default function Admin() {
                           Reject
                         </Button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          ) : (
+            <Card className="space-y-3">
+              <p className="section-title">Admin Audit Logs</p>
+              {logs.length === 0 ? (
+                <p className="text-sm text-slate-500">No logs available.</p>
+              ) : (
+                <div className="space-y-2">
+                  {logs.map((log) => (
+                    <div key={log.id} className="surface-muted p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{log.action}</p>
+                        <p className="text-xs text-slate-500">{new Date(log.created_at).toLocaleString()}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">{log.admin_email}</p>
                     </div>
                   ))}
                 </div>
