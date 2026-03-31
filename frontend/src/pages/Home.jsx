@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 import SummaryCards from "../components/dashboard/SummaryCards";
 import TransactionItem from "../components/transaction/TransactionItem";
 import EmptyState from "../components/ui/EmptyState";
-import CreateWalletForm from "../components/wallet/CreateWalletForm";
-import Button from "../components/ui/Button";
 import Skeleton from "../components/ui/Skeleton";
 
 export default function Home() {
@@ -18,7 +15,6 @@ export default function Home() {
   const [wallets, setWallets] = useState([]);
   const [recentTxs, setRecentTxs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateWallet, setShowCreateWallet] = useState(false);
   const load = async () => {
     setLoading(true);
     const [w, tx] = await Promise.all([api.getWallets(), api.getTransactions({ limit: 5 })]);
@@ -38,9 +34,6 @@ export default function Home() {
       <SummaryCards wallets={wallets} loading={loading} />
       <div className="flex justify-between items-center">
         <h2 className="section-title">{t("transaction.recent")}</h2>
-        <Button onClick={() => setShowCreateWallet(true)} size="sm" className="flex items-center gap-1">
-          <Plus size={15} /> {t("wallet.add")}
-        </Button>
       </div>
       <div className="surface-card divide-y divide-amber-500/10">
         {recentTxs.length ? recentTxs.map((tx) => <TransactionItem key={tx.id} transaction={tx} />) : <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />}
@@ -51,7 +44,6 @@ export default function Home() {
       >
         +
       </button>
-      {showCreateWallet && <CreateWalletForm onClose={() => setShowCreateWallet(false)} onCreated={load} />}
     </div>
   );
 }

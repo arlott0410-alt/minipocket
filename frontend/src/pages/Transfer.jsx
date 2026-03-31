@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { formatAmountInput, formatDisplayAmount, parseAmountInput, precisionByCurrency } from "../lib/amount";
@@ -8,6 +9,7 @@ import Select from "../components/ui/Select";
 import Card from "../components/ui/Card";
 import Skeleton from "../components/ui/Skeleton";
 import WalletCard from "../components/wallet/WalletCard";
+import CreateWalletForm from "../components/wallet/CreateWalletForm";
 import Modal from "../components/ui/Modal";
 
 const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
@@ -42,6 +44,7 @@ export default function Transfer() {
   const [error, setError] = useState("");
   const [loadingWallets, setLoadingWallets] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showCreateWallet, setShowCreateWallet] = useState(false);
 
   const loadAll = async () => {
     setLoadingWallets(true);
@@ -244,7 +247,12 @@ export default function Transfer() {
       <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("transfer.title")}</h1>
       {!loadingWallets && (
         <div className="space-y-2">
-          <h2 className="section-title">{t("transfer.my_wallets")}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="section-title">{t("transfer.my_wallets")}</h2>
+            <Button onClick={() => setShowCreateWallet(true)} size="sm" className="flex items-center gap-1">
+              <Plus size={15} /> {t("wallet.add")}
+            </Button>
+          </div>
           <div className="space-y-2">
             {wallets.map((w) => (
               <div key={w.id} className="space-y-2">
@@ -435,6 +443,12 @@ export default function Transfer() {
           </div>
         </div>
       </Modal>
+      {showCreateWallet && (
+        <CreateWalletForm
+          onClose={() => setShowCreateWallet(false)}
+          onCreated={loadAll}
+        />
+      )}
     </div>
   );
 }
