@@ -373,14 +373,14 @@ export default function Transfer() {
         </>
       )}
 
-      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
+      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-black">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-amber-100">{shareDetail?.wallet?.name || t("transfer.share_wallet")}</h3>
+          <h3 className="text-lg font-semibold text-black">{shareDetail?.wallet?.name || t("transfer.share_wallet")}</h3>
           <div>
-            <p className="label">{t("transfer.members")}</p>
+            <p className="label text-black">{t("transfer.members")}</p>
             <div className="space-y-2 mt-2">
               {(shareDetail?.members || []).length === 0 ? (
-                <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
+                <p className="text-sm text-black/80">{t("transfer.no_invites")}</p>
               ) : (shareDetail?.members || []).map((m) => (
                   <div key={m.user?.id} className="surface-muted p-3 flex items-center justify-between text-black">
                   <div>
@@ -396,10 +396,10 @@ export default function Transfer() {
           </div>
 
           <div>
-            <p className="label">{t("transfer.pending_invites")}</p>
+            <p className="label text-black">{t("transfer.pending_invites")}</p>
             <div className="space-y-2 mt-2">
               {((shareDetail?.pending_invites || []).length === 0 && (shareDetail?.share_links || []).length === 0) ? (
-                <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
+                <p className="text-sm text-black/80">{t("transfer.no_invites")}</p>
               ) : (
                 <>
                   {(shareDetail?.pending_invites || []).map((inv) => (
