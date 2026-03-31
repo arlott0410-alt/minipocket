@@ -92,15 +92,30 @@ router.get("/summary", async (req) => {
   const walletId = u.searchParams.get("wallet_id");
   let q = supabase
     .from("transactions")
-    .select("type, amount")
+    .select("type, amount, wallet:wallets(currency)")
     .eq("user_id", user.id)
     .gte("transaction_date", range.from)
     .lte("transaction_date", range.to);
   if (walletId) q = q.eq("wallet_id", walletId);
   const { data: txs } = await q;
-  const income = (txs || []).filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
-  const expense = (txs || []).filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
-  return Response.json({ period: range.period, label: range.label, income, expense, net: income - expense });
+  const grouped = {};
+  for (const t of txs || []) {
+    const currency = t.wallet?.currency || "N/A";
+    if (!grouped[currency]) grouped[currency] = { currency, income: 0, expense: 0, net: 0 };
+    if (t.type === "income") grouped[currency].income += Number(t.amount);
+    if (t.type === "expense") grouped[currency].expense += Number(t.amount);
+    grouped[currency].net = grouped[currency].income - grouped[currency].expense;
+  }
+  const currency_summaries = Object.values(grouped).sort((a, b) => a.currency.localeCompare(b.currency));
+  const base = currency_summaries[0] || { income: 0, expense: 0, net: 0 };
+  return Response.json({
+    period: range.period,
+    label: range.label,
+    income: walletId ? base.income : 0,
+    expense: walletId ? base.expense : 0,
+    net: walletId ? base.net : 0,
+    currency_summaries,
+  });
 });
 
 router.get("/chart", async (req) => {
@@ -111,14 +126,24 @@ router.get("/chart", async (req) => {
 
   let q = supabase
     .from("transactions")
-    .select("type, amount, transaction_date")
+    .select("type, amount, transaction_date, wallet:wallets(currency)")
     .eq("user_id", user.id)
     .gte("transaction_date", range.from)
     .lte("transaction_date", range.to);
   if (walletId) q = q.eq("wallet_id", walletId);
   const { data: txs } = await q;
-  const chart = groupTransactions(txs, range.period, range.label);
-  return Response.json({ chart, period: range.period, label: range.label });
+  const byCurrency = {};
+  for (const t of txs || []) {
+    const currency = t.wallet?.currency || "N/A";
+    if (!byCurrency[currency]) byCurrency[currency] = [];
+    byCurrency[currency].push(t);
+  }
+  const chart_by_currency = Object.fromEntries(
+    Object.entries(byCurrency).map(([currency, rows]) => [currency, groupTransactions(rows, range.period, range.label)]),
+  );
+  const currencies = Object.keys(chart_by_currency).sort();
+  const chart = walletId && currencies[0] ? chart_by_currency[currencies[0]] : [];
+  return Response.json({ chart, chart_by_currency, currencies, period: range.period, label: range.label });
 });
 
 router.get("/by-category", async (req) => {
@@ -129,7 +154,7 @@ router.get("/by-category", async (req) => {
   const walletId = u.searchParams.get("wallet_id");
   let q = supabase
     .from("transactions")
-    .select("amount, category:categories(name_lo,name_en,emoji)")
+    .select("amount, category:categories(name_lo,name_en,emoji), wallet:wallets(currency)")
     .eq("user_id", user.id)
     .eq("type", type)
     .gte("transaction_date", range.from)
@@ -137,14 +162,27 @@ router.get("/by-category", async (req) => {
   if (walletId) q = q.eq("wallet_id", walletId);
   const { data: txs } = await q;
   const grouped = {};
+  const groupedByCurrency = {};
   for (const t of txs || []) {
     const key = t.category?.name_en || "Other";
+    const currency = t.wallet?.currency || "N/A";
     if (!grouped[key]) {
       grouped[key] = { name_en: key, name_lo: t.category?.name_lo || "ອື່ນໆ", emoji: t.category?.emoji || "📝", total: 0 };
     }
     grouped[key].total += Number(t.amount);
+    if (!groupedByCurrency[currency]) groupedByCurrency[currency] = {};
+    if (!groupedByCurrency[currency][key]) {
+      groupedByCurrency[currency][key] = { name_en: key, name_lo: t.category?.name_lo || "ອື່ນໆ", emoji: t.category?.emoji || "📝", total: 0 };
+    }
+    groupedByCurrency[currency][key].total += Number(t.amount);
   }
-  return Response.json({ categories: Object.values(grouped).sort((a, b) => b.total - a.total) });
+  const categories_by_currency = Object.fromEntries(
+    Object.entries(groupedByCurrency).map(([currency, rows]) => [currency, Object.values(rows).sort((a, b) => b.total - a.total)]),
+  );
+  return Response.json({
+    categories: Object.values(grouped).sort((a, b) => b.total - a.total),
+    categories_by_currency,
+  });
 });
 
 export default router;

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useReports } from "../hooks/useReports";
@@ -14,9 +14,22 @@ export default function Reports() {
   const [period, setPeriod] = useState("month");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [walletId, setWalletId] = useState("");
+  const [reportCurrency, setReportCurrency] = useState("");
   const { wallets } = useWallets();
-  const { summary, chart, categories, loading } = useReports({ period, date, walletId });
+  const { summary, chart, chartByCurrency, categories, categoriesByCurrency, loading } = useReports({ period, date, walletId });
   const exportRef = useRef(null);
+  const currencyRows = summary?.currency_summaries || [];
+  const currencyOptions = currencyRows.map((x) => x.currency);
+  const activeCurrency = walletId ? (wallets.find((w) => w.id === walletId)?.currency || "") : (reportCurrency || currencyOptions[0] || "");
+  const activeSummary = walletId
+    ? summary
+    : (currencyRows.find((x) => x.currency === activeCurrency) || { income: 0, expense: 0, net: 0 });
+  const activeChart = walletId ? chart : (chartByCurrency[activeCurrency] || []);
+  const activeCategories = walletId ? categories : (categoriesByCurrency[activeCurrency] || []);
+
+  useEffect(() => {
+    if (!walletId && !reportCurrency && currencyOptions[0]) setReportCurrency(currencyOptions[0]);
+  }, [walletId, reportCurrency, currencyOptions]);
 
   const exportImage = async () => {
     if (!exportRef.current) return;
@@ -70,25 +83,37 @@ export default function Reports() {
         />
         <select
           value={walletId}
-          onChange={(e) => setWalletId(e.target.value)}
+          onChange={(e) => {
+            setWalletId(e.target.value);
+            setReportCurrency("");
+          }}
           className="w-full rounded-xl border border-amber-500/30 bg-neutral-900 px-3 py-2 text-sm text-amber-100"
         >
           <option value="">{t("report.all_wallets")}</option>
           {wallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>)}
         </select>
       </div>
+      {!walletId && currencyOptions.length > 1 ? (
+        <select
+          value={activeCurrency}
+          onChange={(e) => setReportCurrency(e.target.value)}
+          className="w-full rounded-xl border border-amber-500/30 bg-neutral-900 px-3 py-2 text-sm text-amber-100"
+        >
+          {currencyOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      ) : null}
 
       <div ref={exportRef} className="space-y-4 rounded-2xl bg-neutral-950 p-2">
         {loading ? <Skeleton className="h-24 rounded-2xl" /> : (
           <div className="grid grid-cols-3 gap-2">
-            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.income")}</p><p className="font-semibold text-emerald-300">{Number(summary?.income || 0).toLocaleString()}</p></div>
-            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.expense")}</p><p className="font-semibold text-rose-300">{Number(summary?.expense || 0).toLocaleString()}</p></div>
-            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.net")}</p><p className="font-semibold text-amber-100">{Number(summary?.net || 0).toLocaleString()}</p></div>
+            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.income")}</p><p className="font-semibold text-emerald-300">{Number(activeSummary?.income || 0).toLocaleString()}</p></div>
+            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.expense")}</p><p className="font-semibold text-rose-300">{Number(activeSummary?.expense || 0).toLocaleString()}</p></div>
+            <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.net")}</p><p className="font-semibold text-amber-100">{Number(activeSummary?.net || 0).toLocaleString()}</p></div>
           </div>
         )}
         <div className="surface-card h-56 p-3">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chart}>
+            <BarChart data={activeChart}>
               <XAxis dataKey="period" stroke="#fcd34d" />
               <YAxis stroke="#fcd34d" />
               <Tooltip formatter={(v) => Number(v).toLocaleString()} />
@@ -100,8 +125,8 @@ export default function Reports() {
         <div className="surface-card h-64 p-3">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={categories} dataKey="total" nameKey={i18n.language === "lo" ? "name_lo" : "name_en"} innerRadius={45} outerRadius={70}>
-                {categories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              <Pie data={activeCategories} dataKey="total" nameKey={i18n.language === "lo" ? "name_lo" : "name_en"} innerRadius={45} outerRadius={70}>
+                {activeCategories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v) => Number(v).toLocaleString()} />
             </PieChart>

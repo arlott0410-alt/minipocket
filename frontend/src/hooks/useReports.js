@@ -4,7 +4,9 @@ import { api } from "../lib/api";
 export function useReports({ period = "month", date, walletId = "" }) {
   const [summary, setSummary] = useState(null);
   const [chart, setChart] = useState([]);
+  const [chartByCurrency, setChartByCurrency] = useState({});
   const [categories, setCategories] = useState([]);
+  const [categoriesByCurrency, setCategoriesByCurrency] = useState({});
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const load = async () => {
@@ -16,10 +18,12 @@ export function useReports({ period = "month", date, walletId = "" }) {
       ]);
       setSummary(s);
       setChart(c.chart || []);
+      setChartByCurrency(c.chart_by_currency || {});
       setCategories(by.categories || []);
+      setCategoriesByCurrency(by.categories_by_currency || {});
       setLoading(false);
     };
     load();
   }, [period, date, walletId]);
-  return { summary, chart, categories, loading };
+  return { summary, chart, chartByCurrency, categories, categoriesByCurrency, loading };
 }
