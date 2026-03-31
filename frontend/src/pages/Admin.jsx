@@ -319,9 +319,9 @@ export default function Admin() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
-                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 30)}>+1M</Button>
-                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 180)}>+6M</Button>
-                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 365)}>+1Y</Button>
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 30)}>{t("admin.users.plan_1m")}</Button>
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 180)}>{t("admin.users.plan_6m")}</Button>
+                    <Button size="sm" disabled={saving} onClick={() => setUserPaid(u.id, true, 365)}>{t("admin.users.plan_1y")}</Button>
                     <Button variant="secondary" size="sm" disabled={saving} onClick={() => setUserPaid(u.id, false, null)}>{t("admin.users.set_free")}</Button>
                   </div>
                 </Card>
