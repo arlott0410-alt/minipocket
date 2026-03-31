@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useTelegram } from "./hooks/useTelegram";
@@ -19,13 +19,39 @@ import Card from "./components/ui/Card";
 export default function App() {
   const { login, loading } = useAuthStore();
   const { colorScheme } = useTelegram();
+  const [sdkChecked, setSdkChecked] = useState(false);
 
-  const isTelegram = !!window.Telegram?.WebApp;
+  const isTelegram = useMemo(() => !!window.Telegram?.WebApp, [sdkChecked]);
   const isAdminRoute = window.location?.pathname?.startsWith("/admin");
+
+  useEffect(() => {
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      if (window.Telegram?.WebApp || tries >= 20) {
+        setSdkChecked(true);
+        return;
+      }
+      setTimeout(tick, 100);
+    };
+    tick();
+  }, []);
 
   useEffect(() => {
     if (isTelegram) login();
   }, [login, isTelegram]);
+
+  if (!sdkChecked) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="space-y-3 w-64">
+          <Skeleton className="h-8 w-40 mx-auto" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   if (!isTelegram && !isAdminRoute) {
     return (
