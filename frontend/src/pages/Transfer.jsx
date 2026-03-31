@@ -241,6 +241,25 @@ export default function Transfer() {
     }
   };
 
+  const deleteWallet = async (walletId) => {
+    if (!window.confirm("Delete this wallet? This will archive it.")) return;
+    setSaving(true);
+    setError("");
+    try {
+      await api.deleteWallet(walletId);
+      setForm((s) => ({
+        ...s,
+        from_wallet_id: s.from_wallet_id === walletId ? "" : s.from_wallet_id,
+        to_wallet_id: s.to_wallet_id === walletId ? "" : s.to_wallet_id,
+      }));
+      await loadAll();
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectWalletAsSource = (walletId) => {
     setForm((s) => {
       const next = { ...s, from_wallet_id: walletId };
@@ -265,9 +284,14 @@ export default function Transfer() {
               <div key={w.id} className="space-y-2">
                 <WalletCard wallet={w} onClick={() => selectWalletAsSource(w.id)} />
                 {ownedWallets.some((x) => x.id === w.id) ? (
-                  <Button size="sm" variant="secondary" className="w-full" onClick={() => openShareDetail(w.id)}>
-                    {t("transfer.share_wallet")}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" variant="secondary" className="w-full" onClick={() => openShareDetail(w.id)}>
+                      {t("transfer.share_wallet")}
+                    </Button>
+                    <Button size="sm" variant="danger" className="w-full" disabled={saving} onClick={() => deleteWallet(w.id)}>
+                      Delete Wallet
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             ))}
