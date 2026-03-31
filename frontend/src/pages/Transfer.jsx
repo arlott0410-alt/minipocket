@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import Button from "../components/ui/Button";
@@ -72,8 +72,20 @@ export default function Transfer() {
 
   const fromWallet = wallets.find((w) => w.id === form.from_wallet_id);
   const toWallet = wallets.find((w) => w.id === form.to_wallet_id);
+  const destinationWallets = useMemo(
+    () => wallets.filter((w) => w.id !== form.from_wallet_id),
+    [wallets, form.from_wallet_id],
+  );
   const isCrossCurrency = fromWallet && toWallet && fromWallet.currency !== toWallet.currency;
   const toAmount = isCrossCurrency ? Number(Number(form.from_amount || 0) * Number(form.exchange_rate || 1)).toFixed(4) : Number(form.from_amount || 0).toFixed(4);
+  const invalidSameWallet = !!form.from_wallet_id && !!form.to_wallet_id && form.from_wallet_id === form.to_wallet_id;
+  const transferDisabled = saving || !form.from_wallet_id || !form.to_wallet_id || !form.from_amount || invalidSameWallet;
+
+  useEffect(() => {
+    if (form.from_wallet_id && form.to_wallet_id && form.from_wallet_id === form.to_wallet_id) {
+      setForm((s) => ({ ...s, to_wallet_id: "" }));
+    }
+  }, [form.from_wallet_id, form.to_wallet_id]);
 
   const openShareDetail = async (walletId) => {
     setSaving(true);
@@ -234,20 +246,26 @@ export default function Transfer() {
       ) : (
         <>
           <Card className="space-y-3">
+            <p className="label">{t("transfer.from")}</p>
             <Select value={form.from_wallet_id} onChange={(e) => setForm((s) => ({ ...s, from_wallet_id: e.target.value }))}>
               <option value="">{t("transfer.from")}</option>
               {wallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
+            <p className="label">{t("transfer.amount")}</p>
             <Input type="number" value={form.from_amount} onChange={(e) => setForm((s) => ({ ...s, from_amount: e.target.value }))} placeholder={t("transfer.amount")} />
+            <p className="label">{t("transfer.to")}</p>
             <Select value={form.to_wallet_id} onChange={(e) => setForm((s) => ({ ...s, to_wallet_id: e.target.value }))}>
               <option value="">{t("transfer.to")}</option>
-              {wallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
+              {destinationWallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
+            {invalidSameWallet ? (
+              <p className="rounded-xl border border-rose-500/40 bg-rose-900/20 p-2 text-xs text-rose-200">{t("transfer.same_wallet_error")}</p>
+            ) : null}
             {isCrossCurrency && <Input type="number" value={form.exchange_rate} onChange={(e) => setForm((s) => ({ ...s, exchange_rate: e.target.value }))} placeholder={t("transfer.rate")} />}
             <Input type="number" value={form.fee} onChange={(e) => setForm((s) => ({ ...s, fee: e.target.value }))} placeholder={t("transfer.fee")} />
             <Input value={form.note} onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))} placeholder={t("common.note")} />
-            <p className="surface-muted p-3 text-sm text-slate-600 dark:text-slate-300">{t("transfer.you_receive")}: <span className="font-semibold">{Number(toAmount).toLocaleString()} {toWallet?.currency || ""}</span></p>
-            <Button onClick={submit} className="w-full" disabled={saving}>{saving ? t("common.loading") : t("transfer.confirm")}</Button>
+            <p className="surface-muted p-3 text-sm text-slate-900 dark:text-slate-200">{t("transfer.you_receive")}: <span className="font-semibold">{Number(toAmount).toLocaleString()} {toWallet?.currency || ""}</span></p>
+            <Button onClick={submit} className="w-full" disabled={transferDisabled}>{saving ? t("common.loading") : t("transfer.confirm")}</Button>
           </Card>
 
           <Card className="space-y-3">
@@ -303,7 +321,7 @@ export default function Transfer() {
         </>
       )}
 
-      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto p-4">
+      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-amber-100">{shareDetail?.wallet?.name || t("transfer.share_wallet")}</h3>
           <div>
