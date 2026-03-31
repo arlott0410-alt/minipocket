@@ -1,0 +1,10 @@
+{
+  "nav": { "home": "Home", "transfer": "Transfer", "reports": "Reports", "settings": "Settings" },
+  "home": { "greeting": "Hello" },
+  "wallet": { "my_wallets": "My Wallets", "add": "Add", "empty_title": "No wallets yet", "empty_desc": "Create your first wallet" },
+  "transaction": { "recent": "Recent Transactions", "empty_title": "No transactions yet", "empty_desc": "Start tracking income & expense" },
+  "transfer": { "from": "From Wallet", "to": "To Wallet", "amount": "Amount", "rate": "Exchange Rate", "fee": "Fee", "confirm": "Confirm Transfer", "success": "Transfer successful!", "insufficient": "Insufficient balance", "same_wallet_error": "Cannot transfer to same wallet", "select_wallet": "Select wallet", "cross_currency_notice": "Different currencies — please enter exchange rate", "you_receive": "Recipient receives" },
+  "report": { "income": "Income", "expense": "Expense", "net": "Net", "income_vs_expense": "Income vs Expense (6 months)", "expense_by_category": "Expense by Category" },
+  "subscription": { "paid": "✨ Premium" },
+  "common": { "see_all": "See all", "fill_all": "Please fill all fields", "error": "Something went wrong", "loading": "Loading...", "optional": "optional", "note": "Note" }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "wallet-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "itty-router": "^5.0.17"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
+}

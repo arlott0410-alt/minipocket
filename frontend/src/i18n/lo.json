@@ -1,0 +1,10 @@
+{
+  "nav": { "home": "ໜ້າຫຼັກ", "transfer": "ໂອນເງິນ", "reports": "ລາຍງານ", "settings": "ຕັ້ງຄ່າ" },
+  "home": { "greeting": "ສະບາຍດີ" },
+  "wallet": { "my_wallets": "ກະເປົ໋າຂອງຂ້ອຍ", "add": "ເພີ່ມ", "empty_title": "ຍັງບໍ່ມີກະເປົ໋າ", "empty_desc": "ສ້າງກະເປົ໋າທຳອິດຂອງທ່ານ" },
+  "transaction": { "recent": "ທຸລະກຳຫຼ້າສຸດ", "empty_title": "ຍັງບໍ່ມີທຸລະກຳ", "empty_desc": "ເລີ່ມບັນທຶກລາຍຮັບ-ລາຍຈ່າຍ" },
+  "transfer": { "from": "ຈາກກະເປົ໋າ", "to": "ໄປກະເປົ໋າ", "amount": "ຈຳນວນ", "rate": "ອັດຕາແລກປ່ຽນ", "fee": "ຄ່າທຳນຽມ", "confirm": "ຢືນຢັນການໂອນ", "success": "ໂອນສຳເລັດ!", "insufficient": "ຍອດເງິນບໍ່ພໍ", "same_wallet_error": "ບໍ່ສາມາດໂອນຫາກະເປົ໋າດຽວກັນ", "select_wallet": "ເລືອກກະເປົ໋າ", "cross_currency_notice": "ສະກຸນເງິນຕ່າງກັນ — ກະລຸນາໃສ່ອັດຕາແລກປ່ຽນ", "you_receive": "ຜູ້ຮັບໄດ້ຮັບ" },
+  "report": { "income": "ລາຍຮັບ", "expense": "ລາຍຈ່າຍ", "net": "ສຸດທິ", "income_vs_expense": "ລາຍຮັບ vs ລາຍຈ່າຍ (6 ເດືອນ)", "expense_by_category": "ລາຍຈ່າຍຕາມໝວດໝູ່" },
+  "subscription": { "paid": "✨ Premium" },
+  "common": { "see_all": "ເບິ່ງທັງໝົດ", "fill_all": "ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຄົບ", "error": "ເກີດຂໍ້ຜິດພາດ", "loading": "ກຳລັງໂຫຼດ...", "optional": "ທາງເລືອກ", "note": "ໝາຍເຫດ" }
+}

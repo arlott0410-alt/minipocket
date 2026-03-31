@@ -1,0 +1,57 @@
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useAuthStore } from "./store/authStore";
+import { useTelegram } from "./hooks/useTelegram";
+import Skeleton from "./components/ui/Skeleton";
+import BottomNav from "./components/ui/BottomNav";
+import Home from "./pages/Home";
+import WalletDetail from "./pages/WalletDetail";
+import AddTransaction from "./pages/AddTransaction";
+import Transfer from "./pages/Transfer";
+import Reports from "./pages/Reports";
+import SharedWallets from "./pages/SharedWallets";
+import Settings from "./pages/Settings";
+import Subscription from "./pages/Subscription";
+import HowToPay from "./pages/HowToPay";
+import Admin from "./pages/Admin";
+
+export default function App() {
+  const { login, loading } = useAuthStore();
+  const { colorScheme } = useTelegram();
+  useEffect(() => {
+    login();
+  }, [login]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="space-y-3 w-64">
+          <Skeleton className="h-8 w-40 mx-auto" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={colorScheme === "dark" ? "dark" : ""}>
+      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen max-w-md mx-auto relative">
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/wallet/:id" element={<WalletDetail />} />
+            <Route path="/add-transaction" element={<AddTransaction />} />
+            <Route path="/transfer" element={<Transfer />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/shared" element={<SharedWallets />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/subscription" element={<Subscription />} />
+            <Route path="/how-to-pay" element={<HowToPay />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          <BottomNav />
+        </BrowserRouter>
+      </div>
+    </div>
+  );
+}
