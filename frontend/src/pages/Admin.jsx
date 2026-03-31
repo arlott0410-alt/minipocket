@@ -5,6 +5,21 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Skeleton from "../components/ui/Skeleton";
 
+const BRAND_PRESETS = [
+  "#6366f1",
+  "#4f46e5",
+  "#2563eb",
+  "#0891b2",
+  "#0f766e",
+  "#059669",
+  "#16a34a",
+  "#ca8a04",
+  "#ea580c",
+  "#dc2626",
+  "#db2777",
+  "#7c3aed",
+];
+
 export default function Admin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -161,7 +176,40 @@ export default function Admin() {
               {Object.entries(settings).map(([key, value]) => (
                 <div key={key} className="space-y-1">
                   <label className="text-xs text-slate-500 dark:text-slate-400">{key}</label>
-                  <Input value={value} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
+                  {key === "primary_color" ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={value || "#6366f1"}
+                          onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))}
+                          className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-700 dark:bg-slate-900"
+                          aria-label="Primary color picker"
+                        />
+                        <Input
+                          value={value}
+                          onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))}
+                          placeholder="#6366f1"
+                        />
+                        <div className="h-11 min-w-16 rounded-lg border border-slate-200 dark:border-slate-700" style={{ backgroundColor: value || "#6366f1" }} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {BRAND_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setSettings((s) => ({ ...s, [key]: preset }))}
+                            className={`h-7 w-7 rounded-full border-2 transition ${value === preset ? "border-slate-900 dark:border-white scale-110" : "border-transparent hover:scale-105"}`}
+                            style={{ backgroundColor: preset }}
+                            aria-label={`Use preset color ${preset}`}
+                            title={preset}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Input value={value} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
+                  )}
                 </div>
               ))}
               {error && (
