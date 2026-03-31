@@ -8,7 +8,16 @@ async function getAccessibleWalletIds(supabase, userId) {
     supabase.from("wallet_members").select("wallet_id").eq("user_id", userId),
   ]);
   const owned = (ownedRes.data || []).map((x) => x.id);
-  const shared = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  const sharedIds = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  let shared = [];
+  if (sharedIds.length) {
+    const { data: sharedWallets } = await supabase
+      .from("wallets")
+      .select("id")
+      .in("id", sharedIds)
+      .eq("is_archived", false);
+    shared = (sharedWallets || []).map((x) => x.id);
+  }
   return [...new Set([...owned, ...shared])];
 }
 

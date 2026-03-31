@@ -18,7 +18,16 @@ async function getAccessibleWalletIds(supabase, userId) {
     supabase.from("wallet_members").select("wallet_id").eq("user_id", userId),
   ]);
   const owned = (ownedRes.data || []).map((x) => x.id);
-  const shared = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  const sharedIds = (memberRes.data || []).map((x) => x.wallet_id).filter(Boolean);
+  let shared = [];
+  if (sharedIds.length) {
+    const { data: sharedWallets } = await supabase
+      .from("wallets")
+      .select("id")
+      .in("id", sharedIds)
+      .eq("is_archived", false);
+    shared = (sharedWallets || []).map((x) => x.id);
+  }
   return [...new Set([...owned, ...shared])];
 }
 
@@ -43,7 +52,8 @@ router.get("/", async (req) => {
   const from = u.searchParams.get("from");
   const to = u.searchParams.get("to");
   const category_id = u.searchParams.get("category_id");
-  const limit = Number(u.searchParams.get("limit") || 50);
+  const requestedLimit = Number(u.searchParams.get("limit") || 50);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 200) : 50;
   const offset = Number(u.searchParams.get("offset") || 0);
   const walletIds = await getAccessibleWalletIds(supabase, user.id);
   if (!walletIds.length) return Response.json({ transactions: [], total: 0 });
