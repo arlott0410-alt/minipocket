@@ -28,17 +28,6 @@ export default function Settings() {
         </div>
       </Card>
       <Card className="space-y-3">
-        <p className="label">{t("settings.app_logo")}</p>
-        {settings?.app_logo_url ? (
-          <div className="flex items-center gap-3">
-            <img src={settings.app_logo_url} alt="App logo" className="h-12 w-12 rounded-xl object-cover border border-amber-500/30" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 break-all">{settings.app_logo_url}</p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t("settings.app_logo_empty")}</p>
-        )}
-      </Card>
-      <Card className="space-y-3">
         <p className="label">{t("subscription.contact_title")}</p>
         <div className="surface-muted p-3 text-sm space-y-1">
           <p><span className="text-slate-500">{t("subscription.contact_name")}:</span> {settings?.admin_contact_name || t("subscription.default_admin")}</p>
