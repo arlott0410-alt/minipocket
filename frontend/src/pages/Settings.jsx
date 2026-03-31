@@ -3,9 +3,11 @@ import { useTranslation } from "react-i18next";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { api } from "../lib/api";
+import { useAuthStore } from "../store/authStore";
 
 export default function Settings() {
   const { i18n, t } = useTranslation();
+  const { user } = useAuthStore();
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -16,6 +18,18 @@ export default function Settings() {
     i18n.changeLanguage(lang);
     localStorage.setItem("lang", lang);
   };
+
+  const renderRemaining = () => {
+    if (!user?.is_paid || !user?.paid_until) return t("settings.sub_remaining_free");
+    const diffMs = new Date(user.paid_until).getTime() - Date.now();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return t("settings.sub_remaining_expired");
+    if (diffDays < 30) return t("settings.sub_remaining_days", { days: diffDays });
+    const months = Math.floor(diffDays / 30);
+    const days = diffDays % 30;
+    return t("settings.sub_remaining_months_days", { months, days });
+  };
+
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
@@ -26,6 +40,10 @@ export default function Settings() {
           <Button variant={i18n.language === "en" ? "primary" : "secondary"} onClick={() => setLang("en")} className="w-full">{t("settings.lang_en")}</Button>
           <Button variant={i18n.language === "th" ? "primary" : "secondary"} onClick={() => setLang("th")} className="w-full">{t("settings.lang_th")}</Button>
         </div>
+      </Card>
+      <Card className="space-y-2">
+        <p className="label">{t("settings.sub_remaining_title")}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200">{renderRemaining()}</p>
       </Card>
       <Card className="space-y-3">
         <p className="label">{t("subscription.contact_title")}</p>
