@@ -16,10 +16,11 @@ export default function Transfer() {
   const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", exchange_rate: "1", fee: "0", note: "" });
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [shareWalletId, setShareWalletId] = useState("");
-  const [shareTelegramId, setShareTelegramId] = useState("");
   const [sharePermission, setSharePermission] = useState("viewer");
+  const [shareMaxUses, setShareMaxUses] = useState("1");
   const [shareDetail, setShareDetail] = useState(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [linkPreview, setLinkPreview] = useState(null);
   const [error, setError] = useState("");
   const [loadingWallets, setLoadingWallets] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,6 +34,17 @@ export default function Transfer() {
       setWallets([...(d.owned || []), ...(d.shared || [])]);
       setIncomingInvites(invites.invites || []);
       setShareWalletId((prev) => prev || owned[0]?.id || "");
+
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("share_token");
+      if (token) {
+        try {
+          const preview = await api.getShareLinkInfo(token);
+          setLinkPreview({ token, ...preview.link });
+        } catch {
+          setLinkPreview(null);
+        }
+      }
     } finally {
       setLoadingWallets(false);
     }
@@ -84,20 +96,44 @@ export default function Transfer() {
   };
 
   const sendInvite = async () => {
-    if (!shareWalletId || !shareTelegramId) {
+    if (!shareWalletId) {
       setError(t("common.fill_all"));
       return;
     }
     setSaving(true);
     setError("");
     try {
-      await api.createShareInvite(shareWalletId, {
-        telegram_id: Number(shareTelegramId),
+      const res = await api.createShareLink(shareWalletId, {
         permission: sharePermission,
+        max_uses: Number(shareMaxUses || 1),
       });
-      setShareTelegramId("");
+      const generated = `${window.location.origin}${window.location.pathname}?share_token=${res.link.token}`;
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(generated);
+      } else {
+        window.prompt("Copy this link", generated);
+      }
       await openShareDetail(shareWalletId);
       await loadAll();
+    } catch (e) {
+      if (e.error === "subscription_required_for_both_users") setError(t("transfer.subscription_required"));
+      else setError(t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const joinLink = async () => {
+    if (!linkPreview?.token) return;
+    setSaving(true);
+    setError("");
+    try {
+      await api.joinShareLink(linkPreview.token);
+      await loadAll();
+      setLinkPreview(null);
+      const u = new URL(window.location.href);
+      u.searchParams.delete("share_token");
+      window.history.replaceState({}, "", u.toString());
     } catch (e) {
       if (e.error === "subscription_required_for_both_users") setError(t("transfer.subscription_required"));
       else setError(t("common.error"));
@@ -137,6 +173,18 @@ export default function Transfer() {
     setSaving(true);
     try {
       await api.cancelShareInvite(walletId, inviteId);
+      await openShareDetail(walletId);
+      await loadAll();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const disableLink = async (walletId, linkId) => {
+    if (!window.confirm("Disable this link?")) return;
+    setSaving(true);
+    try {
+      await api.revokeShareLink(walletId, linkId);
       await openShareDetail(walletId);
       await loadAll();
     } finally {
@@ -193,16 +241,16 @@ export default function Transfer() {
               <option value="">{t("transfer.select_wallet")}</option>
               {ownedWallets.map((w) => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
             </Select>
-            <Input
-              type="number"
-              value={shareTelegramId}
-              onChange={(e) => setShareTelegramId(e.target.value)}
-              placeholder={t("transfer.invite_telegram_id")}
-            />
             <Select value={sharePermission} onChange={(e) => setSharePermission(e.target.value)}>
               <option value="viewer">{t("transfer.permission_viewer")}</option>
               <option value="editor">{t("transfer.permission_editor")}</option>
             </Select>
+            <Input
+              type="number"
+              value={shareMaxUses}
+              onChange={(e) => setShareMaxUses(e.target.value)}
+              placeholder={t("transfer.max_uses")}
+            />
             <Button onClick={sendInvite} disabled={saving}>{saving ? t("common.loading") : t("transfer.send_invite")}</Button>
 
             <div className="space-y-2">
@@ -223,6 +271,19 @@ export default function Transfer() {
               ))}
             </div>
           </Card>
+
+          {linkPreview ? (
+            <Card className="space-y-3 border border-amber-400/40">
+              <p className="section-title">{t("transfer.join_link_title")}</p>
+              <p className="text-sm text-amber-100">
+                {linkPreview.wallet?.icon || "💼"} {linkPreview.wallet?.name}
+              </p>
+              <p className="text-xs text-amber-300/70">
+                {linkPreview.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}
+              </p>
+              <Button onClick={joinLink} disabled={saving}>{saving ? t("common.loading") : t("transfer.join_link")}</Button>
+            </Card>
+          ) : null}
         </>
       )}
 
@@ -251,19 +312,47 @@ export default function Transfer() {
           <div>
             <p className="label">{t("transfer.pending_invites")}</p>
             <div className="space-y-2 mt-2">
-              {(shareDetail?.pending_invites || []).length === 0 ? (
+              {((shareDetail?.pending_invites || []).length === 0 && (shareDetail?.share_links || []).length === 0) ? (
                 <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
-              ) : (shareDetail?.pending_invites || []).map((inv) => (
-                <div key={inv.id} className="surface-muted p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-amber-100">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
-                    <p className="text-xs text-amber-300/70">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
-                  </div>
-                  <Button size="sm" variant="secondary" onClick={() => cancelInvite(shareDetail.wallet.id, inv.id)}>
-                    {t("transfer.cancel_invite")}
-                  </Button>
-                </div>
-              ))}
+              ) : (
+                <>
+                  {(shareDetail?.pending_invites || []).map((inv) => (
+                    <div key={inv.id} className="surface-muted p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-amber-100">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
+                        <p className="text-xs text-amber-300/70">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => cancelInvite(shareDetail.wallet.id, inv.id)}>
+                        {t("transfer.cancel_invite")}
+                      </Button>
+                    </div>
+                  ))}
+                  {(shareDetail?.share_links || []).map((link) => (
+                    <div key={link.id} className="surface-muted p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-amber-100">{t("transfer.link_item")} #{link.token.slice(0, 8)}</p>
+                        <p className="text-xs text-amber-300/70">
+                          {link.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")} | {link.used_count}/{link.max_uses}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const url = `${window.location.origin}${window.location.pathname}?share_token=${link.token}`;
+                            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+                          }}
+                        >
+                          {t("transfer.copy_link")}
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => disableLink(shareDetail.wallet.id, link.id)}>
+                          {t("transfer.disable_link")}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
