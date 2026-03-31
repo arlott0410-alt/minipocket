@@ -142,3 +142,22 @@ create table if not exists admin_emails (
 );
 
 alter table admin_emails enable row level security;
+
+create table if not exists payment_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  amount_lak numeric(20,4) not null check (amount_lak > 0),
+  transfer_ref text,
+  slip_url text,
+  note text,
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  admin_note text,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_payment_requests_user_created on payment_requests(user_id, created_at desc);
+create index if not exists idx_payment_requests_status_created on payment_requests(status, created_at desc);
+
+alter table payment_requests enable row level security;

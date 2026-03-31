@@ -1,5 +1,5 @@
 const BASE_URL = import.meta.env.VITE_WORKER_URL;
-let adminAccessToken = null;
+let adminAccessToken = localStorage.getItem("admin_access_token") || null;
 
 function getInitData() {
   if (window.Telegram?.WebApp?.initData) return window.Telegram.WebApp.initData;
@@ -41,11 +41,15 @@ export const api = {
   getChart: (months = 6) => request(`/api/reports/chart?months=${months}`),
   getByCategory: (month, type) => request(`/api/reports/by-category?month=${month}&type=${type}`),
   getSettings: () => request("/api/users/settings"),
+  getMyPayments: () => request("/api/users/payments"),
+  createPaymentRequest: (body) => request("/api/users/payments", { method: "POST", body }),
   adminLogin: (body) => request("/api/admin/login", { method: "POST", body }),
   adminGetSettings: () => request("/api/admin/settings"),
   adminSaveSettings: (body) => request("/api/admin/settings", { method: "POST", body }),
   adminGetUsers: () => request("/api/admin/users"),
   adminUpdateUser: (id, body) => request(`/api/admin/users/${id}`, { method: "PATCH", body }),
+  adminGetPayments: (status = "") => request(`/api/admin/payments${status ? `?status=${status}` : ""}`),
+  adminReviewPayment: (id, body) => request(`/api/admin/payments/${id}`, { method: "PATCH", body }),
   adminGetCurrencies: () => request("/api/admin/currencies"),
   adminCreateCurrency: (body) => request("/api/admin/currencies", { method: "POST", body }),
   adminGetCategories: () => request("/api/admin/categories"),
@@ -55,4 +59,10 @@ export const api = {
 
 export function setAdminAccessToken(token) {
   adminAccessToken = token;
+  if (token) localStorage.setItem("admin_access_token", token);
+  else localStorage.removeItem("admin_access_token");
+}
+
+export function clearAdminAccessToken() {
+  setAdminAccessToken(null);
 }

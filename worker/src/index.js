@@ -35,6 +35,10 @@ router.post("/api/admin/login", async (req, env) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return Response.json({ error: "Invalid credentials" }, { status: 401 });
 
+  const service = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
+  const { data: adminEmail } = await service.from("admin_emails").select("email").eq("email", email).single();
+  if (!adminEmail) return Response.json({ error: "Forbidden" }, { status: 403 });
+
   return Response.json({ access_token: data.session.access_token });
 });
 

@@ -23,23 +23,36 @@ router.get("/chart", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
   const months = Number(u.searchParams.get("months") || 6);
-  const chart = [];
+  const start = new Date();
+  start.setMonth(start.getMonth() - (months - 1));
+  start.setDate(1);
+  const from = start.toISOString().slice(0, 10);
+  const end = new Date();
+  const to = new Date(end.getFullYear(), end.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  const { data: txs } = await supabase
+    .from("transactions")
+    .select("type, amount, transaction_date")
+    .eq("user_id", user.id)
+    .gte("transaction_date", from)
+    .lte("transaction_date", to);
+
+  const monthMap = {};
   for (let i = months - 1; i >= 0; i -= 1) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
     const month = d.toISOString().slice(0, 7);
-    const from = `${month}-01`;
-    const to = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const { data: txs } = await supabase
-      .from("transactions")
-      .select("type, amount")
-      .eq("user_id", user.id)
-      .gte("transaction_date", from)
-      .lte("transaction_date", to);
-    const income = (txs || []).filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
-    const expense = (txs || []).filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
-    chart.push({ month, income, expense });
+    monthMap[month] = { month, income: 0, expense: 0 };
   }
+
+  for (const tx of txs || []) {
+    const month = String(tx.transaction_date).slice(0, 7);
+    if (!monthMap[month]) continue;
+    if (tx.type === "income") monthMap[month].income += Number(tx.amount);
+    if (tx.type === "expense") monthMap[month].expense += Number(tx.amount);
+  }
+
+  const chart = Object.values(monthMap);
   return Response.json({ chart });
 });
 
