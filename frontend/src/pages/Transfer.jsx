@@ -382,10 +382,10 @@ export default function Transfer() {
               {(shareDetail?.members || []).length === 0 ? (
                 <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
               ) : (shareDetail?.members || []).map((m) => (
-                <div key={m.user?.id} className="surface-muted p-3 flex items-center justify-between">
+                  <div key={m.user?.id} className="surface-muted p-3 flex items-center justify-between text-black">
                   <div>
-                    <p className="text-sm text-amber-100">@{m.user?.username || m.user?.telegram_id}</p>
-                    <p className="text-xs text-amber-300/70">{m.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
+                      <p className="text-sm text-black">@{m.user?.username || m.user?.telegram_id}</p>
+                      <p className="text-xs text-black/80">{m.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => removeMember(shareDetail.wallet.id, m.user.id)}>
                     {t("transfer.remove_member")}
@@ -403,10 +403,10 @@ export default function Transfer() {
               ) : (
                 <>
                   {(shareDetail?.pending_invites || []).map((inv) => (
-                    <div key={inv.id} className="surface-muted p-3 flex items-center justify-between">
+                    <div key={inv.id} className="surface-muted p-3 flex items-center justify-between text-black">
                       <div>
-                        <p className="text-sm text-amber-100">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
-                        <p className="text-xs text-amber-300/70">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
+                        <p className="text-sm text-black">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
+                        <p className="text-xs text-black/80">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
                       </div>
                       <Button size="sm" variant="secondary" onClick={() => cancelInvite(shareDetail.wallet.id, inv.id)}>
                         {t("transfer.cancel_invite")}
@@ -414,10 +414,10 @@ export default function Transfer() {
                     </div>
                   ))}
                   {(shareDetail?.share_links || []).map((link) => (
-                    <div key={link.id} className="surface-muted p-3 flex items-center justify-between">
+                    <div key={link.id} className="surface-muted p-3 flex items-center justify-between text-black">
                       <div>
-                        <p className="text-sm text-amber-100">{t("transfer.link_item")} #{link.token.slice(0, 8)}</p>
-                        <p className="text-xs text-amber-300/70">
+                        <p className="text-sm text-black">{t("transfer.link_item")} #{link.token.slice(0, 8)}</p>
+                        <p className="text-xs text-black/80">
                           {link.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")} | {link.used_count}/{link.max_uses}
                         </p>
                       </div>
