@@ -108,26 +108,29 @@ router.patch("/:id", async (req) => {
   if (!old) return Response.json({ error: "Not found" }, { status: 404 });
   const canEdit = await canEditWallet(supabase, old.wallet_id, user.id);
   if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const amount = normalizeAmount(body.amount, old.wallet?.currency);
+  const nextType = body.type || old.type;
+  const nextDate = body.transaction_date || old.transaction_date;
+  const amount = normalizeAmount(body.amount ?? old.amount, old.wallet?.currency);
   if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
-  const oldDelta = old.type === "income" ? -Number(old.amount) : Number(old.amount);
-  const newDelta = body.type === "income" ? amount : -amount;
-  await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: oldDelta });
-  await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: newDelta });
+
   const { data, error } = await supabase
     .from("transactions")
     .update({
-      type: body.type,
+      type: nextType,
       amount,
-      category_id: body.category_id || null,
-      note: body.note || null,
-      transaction_date: body.transaction_date,
+      category_id: body.category_id ?? old.category_id ?? null,
+      note: body.note ?? old.note ?? null,
+      transaction_date: nextDate,
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.id)
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  const oldDelta = old.type === "income" ? -Number(old.amount) : Number(old.amount);
+  const newDelta = nextType === "income" ? amount : -amount;
+  await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: oldDelta });
+  await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: newDelta });
   return Response.json({ transaction: data });
 });
 

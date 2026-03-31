@@ -22,6 +22,7 @@ export default function WalletDetail() {
   const [loading, setLoading] = useState(true);
   const [editingTx, setEditingTx] = useState(null);
   const [txForm, setTxForm] = useState({ type: "expense", amount: "", note: "", transaction_date: "" });
+  const [error, setError] = useState("");
 
   const wallet = useMemo(() => wallets.find((w) => w.id === id), [wallets, id]);
   const canDeleteWallet = wallet && wallet.owner_id === user?.id;
@@ -51,16 +52,24 @@ export default function WalletDetail() {
   const saveEditTx = async () => {
     if (!editingTx) return;
     const amountNumber = parseAmountInput(txForm.amount);
-    if (amountNumber <= 0) return;
-    await api.updateTransaction(editingTx.id, {
-      type: txForm.type,
-      amount: amountNumber,
-      note: txForm.note,
-      transaction_date: txForm.transaction_date,
-      category_id: editingTx.category_id || null,
-    });
-    setEditingTx(null);
-    await load();
+    if (amountNumber <= 0) {
+      setError("Invalid amount");
+      return;
+    }
+    try {
+      setError("");
+      await api.updateTransaction(editingTx.id, {
+        type: txForm.type,
+        amount: amountNumber,
+        note: txForm.note,
+        transaction_date: txForm.transaction_date,
+        category_id: editingTx.category_id || null,
+      });
+      setEditingTx(null);
+      await load();
+    } catch (e) {
+      setError(e?.error || "Unable to update transaction");
+    }
   };
 
   const deleteTx = async (txId) => {
@@ -119,6 +128,7 @@ export default function WalletDetail() {
       <Modal open={!!editingTx} onClose={() => setEditingTx(null)} panelClassName="border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-amber-100">Edit Transaction</h3>
+          {error ? <p className="rounded-lg border border-rose-500/40 bg-rose-900/20 p-2 text-xs text-rose-200">{error}</p> : null}
           <Select value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))}>
             <option value="income">{t("transaction.type_income")}</option>
             <option value="expense">{t("transaction.type_expense")}</option>
