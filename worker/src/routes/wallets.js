@@ -2,6 +2,16 @@ import { Router } from "itty-router";
 
 const router = Router({ base: "/api/wallets" });
 
+function precisionByCurrency(currency) {
+  return currency === "LAK" ? 0 : 2;
+}
+
+function normalizeAmount(amount, currency) {
+  const n = Number(amount || 0);
+  const precision = precisionByCurrency(currency);
+  return Number.isFinite(n) ? Number(n.toFixed(precision)) : NaN;
+}
+
 function hasActiveSubscription(user) {
   if (!user?.is_paid || !user?.paid_until) return false;
   return new Date(user.paid_until).getTime() > Date.now();
@@ -72,6 +82,10 @@ router.post("/", async (req) => {
     .eq("is_active", true)
     .single();
   if (currencyError || !currency) return Response.json({ error: "unsupported_currency" }, { status: 400 });
+  const initialBalance = normalizeAmount(body.initial_balance || 0, body.currency);
+  if (!Number.isFinite(initialBalance) || initialBalance < 0) {
+    return Response.json({ error: "invalid_amount" }, { status: 400 });
+  }
 
   const { data, error } = await supabase
     .from("wallets")
@@ -79,6 +93,7 @@ router.post("/", async (req) => {
       owner_id: user.id,
       name: body.name,
       currency: body.currency,
+      balance: initialBalance,
       color: body.color || "#6366f1",
       icon: body.icon || "💰",
     })

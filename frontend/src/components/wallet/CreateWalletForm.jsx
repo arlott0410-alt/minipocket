@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../lib/api";
+import { formatAmountInput, parseAmountInput, precisionByCurrency } from "../../lib/amount";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
@@ -8,7 +9,7 @@ import Button from "../ui/Button";
 
 export default function CreateWalletForm({ onClose, onCreated }) {
   const { t } = useTranslation();
-  const [form, setForm] = useState({ name: "", currency: "LAK", color: "#6366f1", icon: "💰" });
+  const [form, setForm] = useState({ name: "", currency: "LAK", color: "#6366f1", icon: "💰", initial_balance: "" });
   const [currencies, setCurrencies] = useState([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -25,9 +26,14 @@ export default function CreateWalletForm({ onClose, onCreated }) {
       setError(t("wallet.name_required"));
       return;
     }
+    const initialBalance = parseAmountInput(form.initial_balance || "0");
+    if (initialBalance < 0) {
+      setError(t("common.invalid_amount"));
+      return;
+    }
     try {
       setSaving(true);
-      await api.createWallet(form);
+      await api.createWallet({ ...form, initial_balance: initialBalance });
       onCreated?.();
       onClose?.();
     } catch (e) {
@@ -54,6 +60,13 @@ export default function CreateWalletForm({ onClose, onCreated }) {
               </option>
             ))}
           </Select>
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder={t("wallet.initial_balance")}
+            value={form.initial_balance}
+            onChange={(e) => setForm((s) => ({ ...s, initial_balance: formatAmountInput(e.target.value, precisionByCurrency(form.currency)) }))}
+          />
         </div>
 
         <div className="absolute inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
