@@ -1,6 +1,8 @@
 import { formatDisplayAmount } from "../../lib/amount";
+import { useTranslation } from "react-i18next";
 
 export default function SummaryCards({ wallets, loading }) {
+  const { t } = useTranslation();
   const totalsByCurrency = (wallets || []).reduce((acc, w) => {
     const c = w.currency || "N/A";
     acc[c] = (acc[c] || 0) + Number(w.balance || 0);
@@ -11,7 +13,7 @@ export default function SummaryCards({ wallets, loading }) {
   return (
     <div className="surface-card p-4 relative overflow-hidden">
       <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl" />
-      <p className="label">{loading ? "..." : "Portfolio by currency"}</p>
+      <p className="label">{loading ? "..." : t("home.portfolio_by_currency")}</p>
       {currencyRows.length === 0 ? (
         <p className="mt-1 text-3xl font-bold tracking-tight text-amber-100">0</p>
       ) : (
@@ -24,7 +26,7 @@ export default function SummaryCards({ wallets, loading }) {
           ))}
         </div>
       )}
-      <p className="mt-2 text-sm text-amber-200/70">{count} wallet{count === 1 ? "" : "s"} active</p>
+      <p className="mt-2 text-sm text-amber-200/70">{t("home.wallets_active", { count })}</p>
     </div>
   );
 }
