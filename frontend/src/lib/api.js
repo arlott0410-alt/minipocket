@@ -52,6 +52,8 @@ export const api = {
     request(`/api/reports/chart?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), ...(wallet_id ? { wallet_id } : {}) })}`),
   getByCategory: ({ period = "month", date, type = "expense", wallet_id = "" } = {}) =>
     request(`/api/reports/by-category?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), type, ...(wallet_id ? { wallet_id } : {}) })}`),
+  getReportsBundle: ({ period = "month", date, type = "expense", wallet_id = "" } = {}) =>
+    request(`/api/reports/bundle?${new URLSearchParams({ period, date: date || new Date().toISOString().slice(0, 10), type, ...(wallet_id ? { wallet_id } : {}) })}`),
   getSettings: () => request("/api/users/settings"),
   adminLogin: (body) => request("/api/admin/login", { method: "POST", body }),
   adminGetSettings: () => request("/api/admin/settings"),

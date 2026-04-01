@@ -1,6 +1,28 @@
 import { Router } from "itty-router";
 
 const router = Router({ base: "/api/reports" });
+const REPORT_CACHE_TTL_MS = 60 * 1000;
+const reportCache = new Map();
+
+function getCache(key) {
+  const hit = reportCache.get(key);
+  if (!hit) return null;
+  if (hit.expireAt <= Date.now()) {
+    reportCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function setCache(key, value) {
+  reportCache.set(key, { expireAt: Date.now() + REPORT_CACHE_TTL_MS, value });
+  if (reportCache.size > 200) {
+    for (const [k, v] of reportCache.entries()) {
+      if (v.expireAt <= Date.now()) reportCache.delete(k);
+      if (reportCache.size <= 200) break;
+    }
+  }
+}
 
 async function getAccessibleWalletIds(supabase, userId) {
   const [ownedRes, memberRes] = await Promise.all([
@@ -104,24 +126,9 @@ function groupTransactions(txs, period, dateLabel) {
   return Object.values(map).map((x) => ({ period: x.key, income: x.income, expense: x.expense }));
 }
 
-router.get("/summary", async (req) => {
-  const { supabase, user } = req;
-  const u = new URL(req.url);
-  const range = getRangeFromQuery(u.searchParams);
-  const walletId = u.searchParams.get("wallet_id");
-  const walletIds = await getAccessibleWalletIds(supabase, user.id);
-  if (!walletIds.length) return Response.json({ period: range.period, label: range.label, income: 0, expense: 0, net: 0, currency_summaries: [] });
-  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
-  let q = supabase
-    .from("transactions")
-    .select("type, amount, wallet:wallets(currency)")
-    .in("wallet_id", walletIds)
-    .gte("transaction_date", range.from)
-    .lte("transaction_date", range.to);
-  if (walletId) q = q.eq("wallet_id", walletId);
-  const { data: txs } = await q;
+function buildSummaryFromRows(rows, walletId, range) {
   const grouped = {};
-  for (const t of txs || []) {
+  for (const t of rows || []) {
     const currency = t.wallet?.currency || "N/A";
     if (!grouped[currency]) grouped[currency] = { currency, income: 0, expense: 0, net: 0 };
     if (t.type === "income") grouped[currency].income += Number(t.amount);
@@ -130,68 +137,36 @@ router.get("/summary", async (req) => {
   }
   const currency_summaries = Object.values(grouped).sort((a, b) => a.currency.localeCompare(b.currency));
   const base = currency_summaries[0] || { income: 0, expense: 0, net: 0 };
-  return Response.json({
+  return {
     period: range.period,
     label: range.label,
     income: walletId ? base.income : 0,
     expense: walletId ? base.expense : 0,
     net: walletId ? base.net : 0,
     currency_summaries,
-  });
-});
+  };
+}
 
-router.get("/chart", async (req) => {
-  const { supabase, user } = req;
-  const u = new URL(req.url);
-  const range = getRangeFromQuery(u.searchParams);
-  const walletId = u.searchParams.get("wallet_id");
-  const walletIds = await getAccessibleWalletIds(supabase, user.id);
-  if (!walletIds.length) return Response.json({ chart: [], chart_by_currency: {}, currencies: [], period: range.period, label: range.label });
-  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
-
-  let q = supabase
-    .from("transactions")
-    .select("type, amount, transaction_date, wallet:wallets(currency)")
-    .in("wallet_id", walletIds)
-    .gte("transaction_date", range.from)
-    .lte("transaction_date", range.to);
-  if (walletId) q = q.eq("wallet_id", walletId);
-  const { data: txs } = await q;
+function buildChartFromRows(rows, walletId, range) {
   const byCurrency = {};
-  for (const t of txs || []) {
+  for (const t of rows || []) {
     const currency = t.wallet?.currency || "N/A";
     if (!byCurrency[currency]) byCurrency[currency] = [];
     byCurrency[currency].push(t);
   }
   const chart_by_currency = Object.fromEntries(
-    Object.entries(byCurrency).map(([currency, rows]) => [currency, groupTransactions(rows, range.period, range.label)]),
+    Object.entries(byCurrency).map(([currency, txs]) => [currency, groupTransactions(txs, range.period, range.label)]),
   );
   const currencies = Object.keys(chart_by_currency).sort();
   const chart = walletId && currencies[0] ? chart_by_currency[currencies[0]] : [];
-  return Response.json({ chart, chart_by_currency, currencies, period: range.period, label: range.label });
-});
+  return { chart, chart_by_currency, currencies, period: range.period, label: range.label };
+}
 
-router.get("/by-category", async (req) => {
-  const { supabase, user } = req;
-  const u = new URL(req.url);
-  const range = getRangeFromQuery(u.searchParams);
-  const type = u.searchParams.get("type") || "expense";
-  const walletId = u.searchParams.get("wallet_id");
-  const walletIds = await getAccessibleWalletIds(supabase, user.id);
-  if (!walletIds.length) return Response.json({ categories: [], categories_by_currency: {} });
-  if (walletId && !walletIds.includes(walletId)) return Response.json({ error: "Forbidden" }, { status: 403 });
-  let q = supabase
-    .from("transactions")
-    .select("amount, category:categories(name_lo,name_en,name_th,emoji), wallet:wallets(currency)")
-    .in("wallet_id", walletIds)
-    .eq("type", type)
-    .gte("transaction_date", range.from)
-    .lte("transaction_date", range.to);
-  if (walletId) q = q.eq("wallet_id", walletId);
-  const { data: txs } = await q;
+function buildCategoryFromRows(rows, type = "expense") {
   const grouped = {};
   const groupedByCurrency = {};
-  for (const t of txs || []) {
+  for (const t of rows || []) {
+    if (t.type !== type) continue;
     const key = t.category?.name_en || "Other";
     const currency = t.wallet?.currency || "N/A";
     if (!grouped[key]) {
@@ -216,13 +191,80 @@ router.get("/by-category", async (req) => {
     }
     groupedByCurrency[currency][key].total += Number(t.amount);
   }
-  const categories_by_currency = Object.fromEntries(
-    Object.entries(groupedByCurrency).map(([currency, rows]) => [currency, Object.values(rows).sort((a, b) => b.total - a.total)]),
-  );
-  return Response.json({
+  return {
     categories: Object.values(grouped).sort((a, b) => b.total - a.total),
-    categories_by_currency,
-  });
+    categories_by_currency: Object.fromEntries(
+      Object.entries(groupedByCurrency).map(([currency, categoryRows]) => [currency, Object.values(categoryRows).sort((a, b) => b.total - a.total)]),
+    ),
+  };
+}
+
+async function buildReportBundle(req, type = "expense") {
+  const { supabase, user } = req;
+  const u = new URL(req.url);
+  const range = getRangeFromQuery(u.searchParams);
+  const walletId = u.searchParams.get("wallet_id");
+  const walletIds = await getAccessibleWalletIds(supabase, user.id);
+  if (!walletIds.length) {
+    return {
+      summary: { period: range.period, label: range.label, income: 0, expense: 0, net: 0, currency_summaries: [] },
+      chart: { chart: [], chart_by_currency: {}, currencies: [], period: range.period, label: range.label },
+      by_category: { categories: [], categories_by_currency: {} },
+    };
+  }
+  if (walletId && !walletIds.includes(walletId)) {
+    return { error: "Forbidden", status: 403 };
+  }
+
+  const cacheKey = `${user.id}|${walletId || "all"}|${range.period}|${range.from}|${range.to}|${type}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  let q = supabase
+    .from("transactions")
+    .select("type, amount, transaction_date, wallet:wallets(currency), category:categories(name_lo,name_en,name_th,emoji)")
+    .in("wallet_id", walletIds)
+    .gte("transaction_date", range.from)
+    .lte("transaction_date", range.to);
+  if (walletId) q = q.eq("wallet_id", walletId);
+  const { data: txs, error } = await q;
+  if (error) return { error: error.message, status: 400 };
+
+  const response = {
+    summary: buildSummaryFromRows(txs || [], walletId, range),
+    chart: buildChartFromRows(txs || [], walletId, range),
+    by_category: buildCategoryFromRows(txs || [], type),
+  };
+  setCache(cacheKey, response);
+  return response;
+}
+
+router.get("/bundle", async (req) => {
+  const u = new URL(req.url);
+  const type = u.searchParams.get("type") || "expense";
+  const bundle = await buildReportBundle(req, type);
+  if (bundle.error) return Response.json({ error: bundle.error }, { status: bundle.status || 400 });
+  return Response.json(bundle);
+});
+
+router.get("/summary", async (req) => {
+  const bundle = await buildReportBundle(req, "expense");
+  if (bundle.error) return Response.json({ error: bundle.error }, { status: bundle.status || 400 });
+  return Response.json(bundle.summary);
+});
+
+router.get("/chart", async (req) => {
+  const bundle = await buildReportBundle(req, "expense");
+  if (bundle.error) return Response.json({ error: bundle.error }, { status: bundle.status || 400 });
+  return Response.json(bundle.chart);
+});
+
+router.get("/by-category", async (req) => {
+  const u = new URL(req.url);
+  const type = u.searchParams.get("type") || "expense";
+  const bundle = await buildReportBundle(req, type);
+  if (bundle.error) return Response.json({ error: bundle.error }, { status: bundle.status || 400 });
+  return Response.json(bundle.by_category);
 });
 
 export default router;

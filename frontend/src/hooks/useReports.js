@@ -11,16 +11,12 @@ export function useReports({ period = "month", date, walletId = "" }) {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [s, c, by] = await Promise.all([
-        api.getSummary({ period, date, wallet_id: walletId }),
-        api.getChart({ period, date, wallet_id: walletId }),
-        api.getByCategory({ period, date, type: "expense", wallet_id: walletId }),
-      ]);
-      setSummary(s);
-      setChart(c.chart || []);
-      setChartByCurrency(c.chart_by_currency || {});
-      setCategories(by.categories || []);
-      setCategoriesByCurrency(by.categories_by_currency || {});
+      const bundle = await api.getReportsBundle({ period, date, type: "expense", wallet_id: walletId });
+      setSummary(bundle.summary || null);
+      setChart(bundle.chart?.chart || []);
+      setChartByCurrency(bundle.chart?.chart_by_currency || {});
+      setCategories(bundle.by_category?.categories || []);
+      setCategoriesByCurrency(bundle.by_category?.categories_by_currency || {});
       setLoading(false);
     };
     load();
