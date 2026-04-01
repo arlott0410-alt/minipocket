@@ -27,6 +27,9 @@ export default function Reports() {
     : (currencyRows.find((x) => x.currency === activeCurrency) || { income: 0, expense: 0, net: 0 });
   const activeChart = walletId ? chart : (chartByCurrency[activeCurrency] || []);
   const activeCategories = walletId ? categories : (categoriesByCurrency[activeCurrency] || []);
+  const pieData = activeCategories
+    .map((c) => ({ ...c, display_name: getCategoryDisplayName(c, i18n.language), total: Number(c.total || 0) }))
+    .filter((c) => c.total > 0);
 
   useEffect(() => {
     if (!walletId && !reportCurrency && currencyOptions[0]) setReportCurrency(currencyOptions[0]);
@@ -113,25 +116,33 @@ export default function Reports() {
           </div>
         )}
         <div className="surface-card h-56 p-3">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={activeChart}>
-              <XAxis dataKey="period" stroke="#fcd34d" />
-              <YAxis stroke="#fcd34d" />
-              <Tooltip formatter={(v) => Number(v).toLocaleString()} />
-              <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" fill="#f87171" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {activeChart.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activeChart}>
+                <XAxis dataKey="period" stroke="#fcd34d" />
+                <YAxis stroke="#fcd34d" />
+                <Tooltip formatter={(v) => Number(v).toLocaleString()} />
+                <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" fill="#f87171" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-amber-300/70">{t("report.no_data")}</div>
+          )}
         </div>
         <div className="surface-card h-64 p-3">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={activeCategories.map((c) => ({ ...c, display_name: getCategoryDisplayName(c, i18n.language) }))} dataKey="total" nameKey="display_name" innerRadius={45} outerRadius={70}>
-                {activeCategories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip formatter={(v) => Number(v).toLocaleString()} />
-            </PieChart>
-          </ResponsiveContainer>
+          {pieData.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="total" nameKey="display_name" innerRadius={45} outerRadius={70}>
+                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v) => Number(v).toLocaleString()} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-amber-300/70">{t("report.no_data")}</div>
+          )}
         </div>
       </div>
     </div>
