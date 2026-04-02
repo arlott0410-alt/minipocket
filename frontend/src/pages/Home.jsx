@@ -82,7 +82,11 @@ export default function Home() {
         <p className="text-sm text-amber-300/75">{t("home.greeting")}</p>
         <h1 className="text-3xl font-bold tracking-tight text-amber-100">{user?.first_name} 👋</h1>
       </div>
-      <SummaryCards wallets={wallets} loading={loading} />
+      <SummaryCards
+        wallets={wallets}
+        loading={loading}
+        onSelectWallet={(w) => navigate(`/wallet/${w.id}`)}
+      />
       <div className="flex justify-between items-center">
         <h2 className="section-title">{t("transaction.recent")}</h2>
       </div>
