@@ -124,7 +124,11 @@ router.patch("/:id", async (req) => {
 
 router.delete("/:id", async (req) => {
   const { supabase, user, params } = req;
-  await supabase.from("wallets").update({ is_archived: true }).eq("id", params.id).eq("owner_id", user.id);
+  const { data: wallet } = await supabase.from("wallets").select("id,owner_id").eq("id", params.id).single();
+  if (!wallet) return Response.json({ error: "wallet_not_found" }, { status: 404 });
+  if (wallet.owner_id !== user.id) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const { error } = await supabase.from("wallets").update({ is_archived: true }).eq("id", params.id).eq("owner_id", user.id);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
   return Response.json({ success: true });
 });
 
@@ -150,7 +154,7 @@ router.get("/:id/shares", async (req) => {
   const { data: wallet } = await supabase.from("wallets").select("id,owner_id,name").eq("id", params.id).single();
   if (!wallet || wallet.owner_id !== user.id) return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  const [membersRes, pendingRes, linksRes] = await Promise.all([
+  const [membersRes, pendingRes, linksRes, activityRes] = await Promise.all([
     supabase
       .from("wallet_members")
       .select("permission,user:users(id,telegram_id,first_name,last_name,username)")
@@ -167,16 +171,26 @@ router.get("/:id/shares", async (req) => {
       .eq("wallet_id", params.id)
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("wallet_share_activity_log")
+      .select(
+        "id,action,transaction_id,payload,created_at,actor_user:users!actor_user_id(id,telegram_id,first_name,last_name,username)",
+      )
+      .eq("wallet_id", params.id)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
   if (membersRes.error) return Response.json({ error: membersRes.error.message }, { status: 400 });
   if (pendingRes.error) return Response.json({ error: pendingRes.error.message }, { status: 400 });
   if (linksRes.error) return Response.json({ error: linksRes.error.message }, { status: 400 });
+  if (activityRes.error) return Response.json({ error: activityRes.error.message }, { status: 400 });
 
   return Response.json({
     wallet,
     members: membersRes.data || [],
     pending_invites: pendingRes.data || [],
     share_links: linksRes.data || [],
+    share_activity: activityRes.data || [],
   });
 });
 

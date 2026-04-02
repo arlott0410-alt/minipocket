@@ -54,6 +54,29 @@ async function canEditWallet(supabase, walletId, userId) {
   return !!member && member.permission === "editor";
 }
 
+function txAuditSnapshot(row) {
+  if (!row) return null;
+  return {
+    type: row.type,
+    amount: row.amount,
+    note: row.note ?? null,
+    transaction_date: row.transaction_date,
+  };
+}
+
+/** Owner sees this in share UI when a member (non-owner) edits or deletes a transaction. */
+async function logShareMemberTxActivity(supabase, { walletOwnerId, actorId, walletId, action, transactionId, payload }) {
+  if (!walletOwnerId || walletOwnerId === actorId) return;
+  const { error } = await supabase.from("wallet_share_activity_log").insert({
+    wallet_id: walletId,
+    actor_user_id: actorId,
+    action,
+    transaction_id: transactionId || null,
+    payload: payload || {},
+  });
+  if (error) console.error("wallet_share_activity_log insert failed", error);
+}
+
 router.get("/", async (req) => {
   const { supabase, user } = req;
   const u = new URL(req.url);
@@ -158,15 +181,31 @@ router.patch("/:id", async (req) => {
   const newDelta = balanceDeltaForType(nextType, amount);
   await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: oldDelta });
   await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: newDelta });
+  await logShareMemberTxActivity(supabase, {
+    walletOwnerId: old.wallet?.owner_id,
+    actorId: user.id,
+    walletId: old.wallet_id,
+    action: "transaction_updated",
+    transactionId: params.id,
+    payload: { before: txAuditSnapshot(old), after: txAuditSnapshot(data) },
+  });
   return Response.json({ transaction: data });
 });
 
 router.delete("/:id", async (req) => {
   const { supabase, user, params } = req;
-  const { data: tx } = await supabase.from("transactions").select("*").eq("id", params.id).single();
+  const { data: tx } = await supabase.from("transactions").select("*, wallet:wallets(owner_id)").eq("id", params.id).single();
   if (!tx) return Response.json({ error: "Not found" }, { status: 404 });
   const canEdit = await canEditWallet(supabase, tx.wallet_id, user.id);
   if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
+  await logShareMemberTxActivity(supabase, {
+    walletOwnerId: tx.wallet?.owner_id,
+    actorId: user.id,
+    walletId: tx.wallet_id,
+    action: "transaction_deleted",
+    transactionId: tx.id,
+    payload: { transaction: txAuditSnapshot(tx) },
+  });
   const delta = -balanceDeltaForType(tx.type, tx.amount);
   await supabase.rpc("increment_balance", { wallet_id: tx.wallet_id, delta });
   await supabase.from("transactions").delete().eq("id", params.id);

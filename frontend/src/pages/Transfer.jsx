@@ -29,8 +29,23 @@ function buildShareUrl(token) {
   return `${window.location.origin}${window.location.pathname}?share_token=${token}`;
 }
 
+function formatShareActivityDetail(row, t) {
+  if (row.action === "transaction_deleted") {
+    const tr = row.payload?.transaction;
+    if (!tr) return "";
+    return `${t("transfer.activity_amount")}: ${Number(tr.amount).toLocaleString()} · ${tr.type || ""}`;
+  }
+  const b = row.payload?.before;
+  const a = row.payload?.after;
+  if (!b || !a) return "";
+  if (Number(b.amount) !== Number(a.amount) || b.type !== a.type) {
+    return `${t("transfer.activity_amount")}: ${Number(b.amount).toLocaleString()} → ${Number(a.amount).toLocaleString()}`;
+  }
+  return "";
+}
+
 export default function Transfer() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [wallets, setWallets] = useState([]);
   const [ownedWallets, setOwnedWallets] = useState([]);
   const [form, setForm] = useState({ from_wallet_id: "", to_wallet_id: "", from_amount: "", to_amount: "", note: "" });
@@ -462,6 +477,31 @@ export default function Transfer() {
                     </div>
                   ))}
                 </>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="label text-black">{t("transfer.activity_title")}</p>
+            <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+              {(shareDetail?.share_activity || []).length === 0 ? (
+                <p className="text-sm text-black/70">{t("transfer.activity_empty")}</p>
+              ) : (
+                (shareDetail?.share_activity || []).map((row) => {
+                  const u = row.actor_user;
+                  const who = u?.username ? `@${u.username}` : [u?.first_name, u?.last_name].filter(Boolean).join(" ") || String(u?.telegram_id ?? "");
+                  const when = new Date(row.created_at).toLocaleString(i18n.language, { dateStyle: "short", timeStyle: "short" });
+                  const label = row.action === "transaction_updated" ? t("transfer.activity_updated") : t("transfer.activity_deleted");
+                  const detail = formatShareActivityDetail(row, t);
+                  return (
+                    <div key={row.id} className="surface-muted rounded-xl p-3 text-black">
+                      <p className="text-xs text-black/60">{when}</p>
+                      <p className="text-sm font-medium text-black">{who}</p>
+                      <p className="text-sm text-black/90">{label}</p>
+                      {detail ? <p className="text-xs text-black/75 mt-0.5">{detail}</p> : null}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

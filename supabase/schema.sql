@@ -90,11 +90,24 @@ create table transfers (
   transferred_at timestamptz default now()
 );
 
+create table wallet_share_activity_log (
+  id uuid primary key default gen_random_uuid(),
+  wallet_id uuid not null references wallets(id) on delete cascade,
+  actor_user_id uuid not null references users(id) on delete cascade,
+  action text not null check (action in ('transaction_updated', 'transaction_deleted')),
+  transaction_id uuid references transactions(id) on delete set null,
+  payload jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create index idx_wallet_share_activity_wallet_created on wallet_share_activity_log(wallet_id, created_at desc);
+
 alter table users enable row level security;
 alter table wallets enable row level security;
 alter table wallet_members enable row level security;
 alter table transactions enable row level security;
 alter table transfers enable row level security;
+alter table wallet_share_activity_log enable row level security;
 
 insert into currencies (code, name, symbol, sort_order) values
   ('LAK', 'ກີບລາວ', '₭', 1),
