@@ -60,6 +60,8 @@ export default function Transfer() {
   const [loadingWallets, setLoadingWallets] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCreateWallet, setShowCreateWallet] = useState(false);
+  const [activityFilter, setActivityFilter] = useState("all"); // all | updated | deleted
+  const [showAllActivity, setShowAllActivity] = useState(false);
 
   const loadAll = async () => {
     setLoadingWallets(true);
@@ -88,6 +90,12 @@ export default function Transfer() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    if (!shareModalOpen) return;
+    setActivityFilter("all");
+    setShowAllActivity(false);
+  }, [shareModalOpen, shareDetail?.wallet?.id]);
 
   const fromWallet = wallets.find((w) => w.id === form.from_wallet_id);
   const toWallet = wallets.find((w) => w.id === form.to_wallet_id);
@@ -282,6 +290,19 @@ export default function Transfer() {
       return next;
     });
   };
+
+  const shareActivity = shareDetail?.share_activity || [];
+  const filteredActivity =
+    activityFilter === "all"
+      ? shareActivity
+      : shareActivity.filter((row) =>
+          activityFilter === "updated"
+            ? row.action === "transaction_updated"
+            : row.action === "transaction_deleted"
+        );
+  const visibleActivity = showAllActivity ? filteredActivity : filteredActivity.slice(0, 10);
+  const updatedCount = shareActivity.filter((r) => r.action === "transaction_updated").length;
+  const deletedCount = shareActivity.filter((r) => r.action === "transaction_deleted").length;
 
   return (
     <div className="pb-24 pt-4 px-4 space-y-4">
@@ -483,26 +504,78 @@ export default function Transfer() {
 
           <div>
             <p className="label text-black">{t("transfer.activity_title")}</p>
-            <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-              {(shareDetail?.share_activity || []).length === 0 ? (
-                <p className="text-sm text-black/70">{t("transfer.activity_empty")}</p>
-              ) : (
-                (shareDetail?.share_activity || []).map((row) => {
-                  const u = row.actor_user;
-                  const who = u?.username ? `@${u.username}` : [u?.first_name, u?.last_name].filter(Boolean).join(" ") || String(u?.telegram_id ?? "");
-                  const when = new Date(row.created_at).toLocaleString(i18n.language, { dateStyle: "short", timeStyle: "short" });
-                  const label = row.action === "transaction_updated" ? t("transfer.activity_updated") : t("transfer.activity_deleted");
-                  const detail = formatShareActivityDetail(row, t);
-                  return (
-                    <div key={row.id} className="surface-muted rounded-xl p-3 text-black">
-                      <p className="text-xs text-black/60">{when}</p>
-                      <p className="text-sm font-medium text-black">{who}</p>
-                      <p className="text-sm text-black/90">{label}</p>
-                      {detail ? <p className="text-xs text-black/75 mt-0.5">{detail}</p> : null}
-                    </div>
-                  );
-                })
-              )}
+            <div className="mt-2 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      activityFilter === "all"
+                        ? "border-amber-500/40 bg-amber-500/20 text-black"
+                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                    }`}
+                    onClick={() => setActivityFilter("all")}
+                  >
+                    {t("transfer.activity_filter_all")} ({shareActivity.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      activityFilter === "updated"
+                        ? "border-amber-500/40 bg-amber-500/20 text-black"
+                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                    }`}
+                    onClick={() => setActivityFilter("updated")}
+                  >
+                    {t("transfer.activity_filter_updated")} ({updatedCount})
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      activityFilter === "deleted"
+                        ? "border-amber-500/40 bg-amber-500/20 text-black"
+                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                    }`}
+                    onClick={() => setActivityFilter("deleted")}
+                  >
+                    {t("transfer.activity_filter_deleted")} ({deletedCount})
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-black/90"
+                  onClick={() => setShowAllActivity((v) => !v)}
+                  disabled={filteredActivity.length === 0}
+                >
+                  {showAllActivity ? t("transfer.activity_show_latest") : t("transfer.activity_show_all")}
+                </button>
+              </div>
+
+              <div className="max-h-52 overflow-y-auto pr-1 space-y-2">
+                {visibleActivity.length === 0 ? (
+                  <p className="text-sm text-black/70">{t("transfer.activity_empty")}</p>
+                ) : (
+                  visibleActivity.map((row) => {
+                    const u = row.actor_user;
+                    const who =
+                      u?.username
+                        ? `@${u.username}`
+                        : [u?.first_name, u?.last_name].filter(Boolean).join(" ") || String(u?.telegram_id ?? "");
+                    const when = new Date(row.created_at).toLocaleString(i18n.language, { dateStyle: "short", timeStyle: "short" });
+                    const label = row.action === "transaction_updated" ? t("transfer.activity_updated") : t("transfer.activity_deleted");
+                    const detail = formatShareActivityDetail(row, t);
+                    return (
+                      <div key={row.id} className="surface-muted rounded-xl p-3 text-black">
+                        <p className="text-xs text-black/60">{when}</p>
+                        <p className="text-sm font-medium text-black">{who}</p>
+                        <p className="text-sm text-black/90">{label}</p>
+                        {detail ? <p className="text-xs text-black/75 mt-0.5">{detail}</p> : null}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
