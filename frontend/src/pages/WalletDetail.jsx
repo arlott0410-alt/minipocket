@@ -88,7 +88,7 @@ export default function WalletDetail() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
+    <div className="page-shell">
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-24 rounded-2xl" />
@@ -99,7 +99,7 @@ export default function WalletDetail() {
         <EmptyState icon="❓" title={t("wallet.not_found_title")} desc={t("wallet.not_found_desc")} />
       ) : (
         <>
-          <div className="surface-card p-4">
+          <div className="surface-card p-4 lg:p-5">
             <p className="text-sm text-slate-500 dark:text-slate-400">{wallet.currency}</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">{wallet.icon} {wallet.name}</h1>
             <p className="text-2xl font-bold mt-2" style={{ color: wallet.color }}>{formatDisplayAmount(wallet.balance || 0, wallet.currency)}</p>
@@ -109,22 +109,24 @@ export default function WalletDetail() {
               </div>
             )}
           </div>
-          {transactions.length ? (
-            <TransactionList
-              transactions={transactions}
-              renderActions={(tx) => (
-                <div className="flex gap-2 justify-end">
-                  <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>{t("common.edit")}</button>
-                  <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>{t("common.delete")}</button>
-                </div>
-              )}
-            />
-          ) : (
-            <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />
-          )}
+          <div>
+            {transactions.length ? (
+              <TransactionList
+                transactions={transactions}
+                renderActions={(tx) => (
+                  <div className="flex gap-2 justify-end">
+                    <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>{t("common.edit")}</button>
+                    <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>{t("common.delete")}</button>
+                  </div>
+                )}
+              />
+            ) : (
+              <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />
+            )}
+          </div>
         </>
       )}
-      <Button onClick={() => navigate("/add-transaction")} className="w-full">{t("transaction.add_title")}</Button>
+      <Button onClick={() => navigate("/add-transaction")} className="w-full lg:w-auto">{t("transaction.add_title")}</Button>
 
       <Modal open={!!editingTx} onClose={() => setEditingTx(null)} panelClassName="border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-3">

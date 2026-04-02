@@ -18,8 +18,8 @@ export default function SharedWallets() {
   }, []);
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-xl font-bold">{t("shared.title")}</h1>
+    <div className="page-shell">
+      <h1 className="page-title">{t("shared.title")}</h1>
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-20 rounded-2xl" />
@@ -28,7 +28,7 @@ export default function SharedWallets() {
       ) : shared.length === 0 ? (
         <EmptyState icon="🤝" title={t("shared.title")} desc={t("shared.empty_desc")} />
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {shared.map((w) => <WalletCard key={w.id} wallet={w} />)}
         </div>
       )}

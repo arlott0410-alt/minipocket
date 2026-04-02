@@ -77,36 +77,40 @@ export default function Home() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-5">
+    <div className="page-shell">
       <div>
         <p className="text-sm text-amber-300/75">{t("home.greeting")}</p>
         <h1 className="text-3xl font-bold tracking-tight text-amber-100">{user?.first_name} 👋</h1>
       </div>
-      <SummaryCards
-        wallets={wallets}
-        loading={loading}
-        onSelectWallet={(w) => navigate(`/wallet/${w.id}`)}
-      />
-      <div className="flex justify-between items-center">
-        <h2 className="section-title">{t("transaction.recent")}</h2>
-      </div>
-      <div className="surface-card divide-y divide-amber-500/10">
-        {recentTxs.length ? recentTxs.map((tx) => (
-          <TransactionItem
-            key={tx.id}
-            transaction={tx}
-            actions={(
-              <div className="flex gap-2 justify-end">
-                <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>{t("common.edit")}</button>
-                <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>{t("common.delete")}</button>
-              </div>
-            )}
-          />
-        )) : <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />}
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
+        <SummaryCards
+          wallets={wallets}
+          loading={loading}
+          onSelectWallet={(w) => navigate(`/wallet/${w.id}`)}
+        />
+        <div>
+          <div className="mb-2 flex justify-between items-center">
+            <h2 className="section-title">{t("transaction.recent")}</h2>
+          </div>
+          <div className="surface-card divide-y divide-amber-500/10">
+            {recentTxs.length ? recentTxs.map((tx) => (
+              <TransactionItem
+                key={tx.id}
+                transaction={tx}
+                actions={(
+                  <div className="flex gap-2 justify-end">
+                    <button className="text-xs text-amber-300 hover:underline" onClick={() => openEditTx(tx)}>{t("common.edit")}</button>
+                    <button className="text-xs text-rose-300 hover:underline" onClick={() => deleteTx(tx.id)}>{t("common.delete")}</button>
+                  </div>
+                )}
+              />
+            )) : <EmptyState icon="📋" title={t("transaction.empty_title")} desc={t("transaction.empty_desc")} />}
+          </div>
+        </div>
       </div>
       <button
         onClick={() => navigate("/add-transaction")}
-        className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-3xl leading-none text-neutral-900 shadow-xl shadow-amber-500/30 transition hover:brightness-110"
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-3xl leading-none text-neutral-900 shadow-xl shadow-amber-500/30 transition hover:brightness-110 lg:bottom-8 lg:right-8"
       >
         +
       </button>

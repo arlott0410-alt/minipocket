@@ -7,6 +7,14 @@ body {
 }
 
 @layer components {
+  .page-shell {
+    @apply pb-24 pt-4 px-4 space-y-4 lg:pb-8 lg:pt-6 lg:px-6 lg:space-y-5;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-amber-100;
+  }
+
   .surface-card {
     @apply rounded-2xl border border-amber-500/25 bg-gradient-to-b from-neutral-900 to-neutral-950 shadow-lg shadow-black/35;
   }
@@ -21,5 +29,9 @@ body {
 
   .label {
     @apply text-xs font-medium uppercase tracking-wide text-amber-400/80;
+  }
+
+  .desktop-content {
+    @apply min-h-[70vh] bg-gradient-to-b from-neutral-950/20 to-transparent;
   }
 }

@@ -31,8 +31,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
+    <div className="page-shell">
+      <h1 className="page-title">{t("settings.title")}</h1>
       <Card className="space-y-3">
         <p className="label">{t("settings.language")}</p>
         <div className="grid grid-cols-3 gap-2">
@@ -43,7 +43,7 @@ export default function Settings() {
       </Card>
       <Card className="space-y-2">
         <p className="label">{t("settings.sub_remaining_title")}</p>
-        <p className="text-sm text-slate-700 dark:text-slate-200">{renderRemaining()}</p>
+        <p className="text-sm text-amber-100">{renderRemaining()}</p>
       </Card>
       <Card className="space-y-3">
         <p className="label">{t("subscription.contact_title")}</p>

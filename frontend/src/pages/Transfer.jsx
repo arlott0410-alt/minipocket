@@ -305,8 +305,8 @@ export default function Transfer() {
   const deletedCount = shareActivity.filter((r) => r.action === "transaction_deleted").length;
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("transfer.title")}</h1>
+    <div className="page-shell">
+      <h1 className="page-title">{t("transfer.title")}</h1>
       {!loadingWallets && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export default function Transfer() {
               <Plus size={15} /> {t("wallet.add")}
             </Button>
           </div>
-          <div className="space-y-2">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             {wallets.map((w) => (
               <div key={w.id} className="space-y-2">
                 <WalletCard wallet={w} onClick={() => selectWalletAsSource(w.id)} />
@@ -339,6 +339,7 @@ export default function Transfer() {
         <Skeleton className="h-56" />
       ) : (
         <>
+          <div className="grid gap-4 xl:grid-cols-2">
           <Card className="space-y-3">
             <p className="label">{t("transfer.from")}</p>
             <Select value={form.from_wallet_id} onChange={(e) => setForm((s) => ({ ...s, from_wallet_id: e.target.value }))}>
@@ -417,6 +418,7 @@ export default function Transfer() {
               ))}
             </div>
           </Card>
+          </div>
 
           {linkPreview ? (
             <Card className="space-y-3 border border-amber-400/40">
@@ -433,19 +435,19 @@ export default function Transfer() {
         </>
       )}
 
-      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-black">
+      <Modal open={shareModalOpen} onClose={() => setShareModalOpen(false)} panelClassName="max-h-[80vh] overflow-y-auto border border-amber-500/30 bg-neutral-950 p-4 text-amber-100">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-black">{shareDetail?.wallet?.name || t("transfer.share_wallet")}</h3>
+          <h3 className="text-lg font-semibold text-amber-100">{shareDetail?.wallet?.name || t("transfer.share_wallet")}</h3>
           <div>
-            <p className="label text-black">{t("transfer.members")}</p>
+            <p className="label text-amber-300/80">{t("transfer.members")}</p>
             <div className="space-y-2 mt-2">
               {(shareDetail?.members || []).length === 0 ? (
-                <p className="text-sm text-black/80">{t("transfer.no_invites")}</p>
+                <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
               ) : (shareDetail?.members || []).map((m) => (
-                  <div key={m.user?.id} className="surface-muted p-3 flex items-center justify-between text-black">
+                  <div key={m.user?.id} className="surface-muted p-3 flex items-center justify-between text-amber-100">
                   <div>
-                      <p className="text-sm text-black">@{m.user?.username || m.user?.telegram_id}</p>
-                      <p className="text-xs text-black/80">{m.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
+                      <p className="text-sm text-amber-100">@{m.user?.username || m.user?.telegram_id}</p>
+                      <p className="text-xs text-amber-200/70">{m.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => removeMember(shareDetail.wallet.id, m.user.id)}>
                     {t("transfer.remove_member")}
@@ -456,17 +458,17 @@ export default function Transfer() {
           </div>
 
           <div>
-            <p className="label text-black">{t("transfer.pending_invites")}</p>
+            <p className="label text-amber-300/80">{t("transfer.pending_invites")}</p>
             <div className="space-y-2 mt-2">
               {((shareDetail?.pending_invites || []).length === 0 && (shareDetail?.share_links || []).length === 0) ? (
-                <p className="text-sm text-black/80">{t("transfer.no_invites")}</p>
+                <p className="text-sm text-amber-200/70">{t("transfer.no_invites")}</p>
               ) : (
                 <>
                   {(shareDetail?.pending_invites || []).map((inv) => (
-                    <div key={inv.id} className="surface-muted p-3 flex items-center justify-between text-black">
+                    <div key={inv.id} className="surface-muted p-3 flex items-center justify-between text-amber-100">
                       <div>
-                        <p className="text-sm text-black">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
-                        <p className="text-xs text-black/80">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
+                        <p className="text-sm text-amber-100">@{inv.target_user?.username || inv.target_user?.telegram_id}</p>
+                        <p className="text-xs text-amber-200/70">{inv.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")}</p>
                       </div>
                       <Button size="sm" variant="secondary" onClick={() => cancelInvite(shareDetail.wallet.id, inv.id)}>
                         {t("transfer.cancel_invite")}
@@ -474,10 +476,10 @@ export default function Transfer() {
                     </div>
                   ))}
                   {(shareDetail?.share_links || []).map((link) => (
-                    <div key={link.id} className="surface-muted p-3 flex items-center justify-between text-black">
+                    <div key={link.id} className="surface-muted p-3 flex items-center justify-between text-amber-100">
                       <div>
-                        <p className="text-sm text-black">{t("transfer.link_item")} #{link.token.slice(0, 8)}</p>
-                        <p className="text-xs text-black/80">
+                        <p className="text-sm text-amber-100">{t("transfer.link_item")} #{link.token.slice(0, 8)}</p>
+                        <p className="text-xs text-amber-200/70">
                           {link.permission === "editor" ? t("transfer.permission_editor") : t("transfer.permission_viewer")} | {link.used_count}/{link.max_uses}
                         </p>
                       </div>
@@ -503,7 +505,7 @@ export default function Transfer() {
           </div>
 
           <div>
-            <p className="label text-black">{t("transfer.activity_title")}</p>
+            <p className="label text-amber-300/80">{t("transfer.activity_title")}</p>
             <div className="mt-2 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -511,8 +513,8 @@ export default function Transfer() {
                     type="button"
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                       activityFilter === "all"
-                        ? "border-amber-500/40 bg-amber-500/20 text-black"
-                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                        ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
+                        : "border-amber-500/20 bg-neutral-900/30 text-amber-200/70"
                     }`}
                     onClick={() => setActivityFilter("all")}
                   >
@@ -522,8 +524,8 @@ export default function Transfer() {
                     type="button"
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                       activityFilter === "updated"
-                        ? "border-amber-500/40 bg-amber-500/20 text-black"
-                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                        ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
+                        : "border-amber-500/20 bg-neutral-900/30 text-amber-200/70"
                     }`}
                     onClick={() => setActivityFilter("updated")}
                   >
@@ -533,8 +535,8 @@ export default function Transfer() {
                     type="button"
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                       activityFilter === "deleted"
-                        ? "border-amber-500/40 bg-amber-500/20 text-black"
-                        : "border-amber-500/20 bg-neutral-900/30 text-black/80"
+                        ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
+                        : "border-amber-500/20 bg-neutral-900/30 text-amber-200/70"
                     }`}
                     onClick={() => setActivityFilter("deleted")}
                   >
@@ -544,7 +546,7 @@ export default function Transfer() {
 
                 <button
                   type="button"
-                  className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-black/90"
+                  className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-100"
                   onClick={() => setShowAllActivity((v) => !v)}
                   disabled={filteredActivity.length === 0}
                 >
@@ -554,7 +556,7 @@ export default function Transfer() {
 
               <div className="max-h-52 overflow-y-auto pr-1 space-y-2">
                 {visibleActivity.length === 0 ? (
-                  <p className="text-sm text-black/70">{t("transfer.activity_empty")}</p>
+                  <p className="text-sm text-amber-200/70">{t("transfer.activity_empty")}</p>
                 ) : (
                   visibleActivity.map((row) => {
                     const u = row.actor_user;
@@ -566,11 +568,11 @@ export default function Transfer() {
                     const label = row.action === "transaction_updated" ? t("transfer.activity_updated") : t("transfer.activity_deleted");
                     const detail = formatShareActivityDetail(row, t);
                     return (
-                      <div key={row.id} className="surface-muted rounded-xl p-3 text-black">
-                        <p className="text-xs text-black/60">{when}</p>
-                        <p className="text-sm font-medium text-black">{who}</p>
-                        <p className="text-sm text-black/90">{label}</p>
-                        {detail ? <p className="text-xs text-black/75 mt-0.5">{detail}</p> : null}
+                      <div key={row.id} className="surface-muted rounded-xl p-3 text-amber-100">
+                        <p className="text-xs text-amber-300/60">{when}</p>
+                        <p className="text-sm font-medium text-amber-100">{who}</p>
+                        <p className="text-sm text-amber-100">{label}</p>
+                        {detail ? <p className="text-xs text-amber-200/70 mt-0.5">{detail}</p> : null}
                       </div>
                     );
                   })

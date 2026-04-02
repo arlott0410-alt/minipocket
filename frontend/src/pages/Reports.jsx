@@ -64,9 +64,9 @@ export default function Reports() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
+    <div className="page-shell">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("report.title")}</h1>
+        <h1 className="page-title">{t("report.title")}</h1>
         <Button size="sm" onClick={exportImage}>{t("report.export_png")}</Button>
       </div>
 
@@ -76,7 +76,7 @@ export default function Reports() {
         <button className={`rounded-xl border px-3 py-2 text-sm ${period === "year" ? "border-amber-300 bg-amber-300 text-neutral-900" : "border-amber-500/30 text-amber-100"}`} onClick={() => setPeriod("year")}>{t("report.period_year")}</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         <input
           type={getDateInputType()}
           min={period === "year" ? "2000" : undefined}
@@ -107,7 +107,7 @@ export default function Reports() {
         </select>
       ) : null}
 
-      <div ref={exportRef} className="space-y-4 rounded-2xl bg-neutral-950 p-2">
+      <div ref={exportRef} className="space-y-4 rounded-2xl bg-neutral-950/70 p-2 lg:p-3">
         {loading ? <Skeleton className="h-24 rounded-2xl" /> : (
           <div className="grid grid-cols-3 gap-2">
             <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.income")}</p><p className="font-semibold text-emerald-300">{Number(activeSummary?.income || 0).toLocaleString()}</p></div>
@@ -115,7 +115,7 @@ export default function Reports() {
             <div className="surface-card rounded-xl p-3 text-center"><p className="text-xs text-amber-300/70">{t("report.net")}</p><p className="font-semibold text-amber-100">{Number(activeSummary?.net || 0).toLocaleString()}</p></div>
           </div>
         )}
-        <div className="surface-card h-56 p-3">
+        <div className="surface-card h-56 p-3 lg:h-72">
           {activeChart.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={activeChart}>
@@ -130,7 +130,7 @@ export default function Reports() {
             <div className="flex h-full items-center justify-center text-sm text-amber-300/70">{t("report.no_data")}</div>
           )}
         </div>
-        <div className="surface-card h-64 p-3">
+        <div className="surface-card h-64 p-3 lg:h-80">
           {pieData.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

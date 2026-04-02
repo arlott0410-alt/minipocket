@@ -8,12 +8,13 @@ const sizes = {
   sm: "px-3 py-2 text-sm",
   md: "px-4 py-2.5 text-sm",
   lg: "px-4 py-3 text-base",
+  xl: "px-5 py-3 text-base",
 };
 
 export default function Button({ className = "", variant = "primary", size = "md", ...props }) {
   return (
     <button
-      className={`rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`rounded-xl font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/50 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     />
   );

@@ -5,7 +5,7 @@ import Skeleton from "../ui/Skeleton";
 export default function SummaryCards({ wallets, loading, onSelectWallet }) {
   const { t } = useTranslation();
   return (
-    <div className="surface-card p-4 relative overflow-hidden">
+    <div className="surface-card relative overflow-hidden p-4 lg:p-5">
       <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl" />
       <div>
         <p className="section-title">{t("wallet.my_wallets")}</p>
@@ -18,7 +18,7 @@ export default function SummaryCards({ wallets, loading, onSelectWallet }) {
         ) : (wallets || []).length === 0 ? (
           <p className="mt-2 text-sm text-amber-200/70">{t("wallet.empty_desc")}</p>
         ) : (
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {(wallets || []).map((w) => (
               <button
                 key={w.id}

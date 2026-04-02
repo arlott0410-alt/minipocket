@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useTelegram } from "./hooks/useTelegram";
 import Skeleton from "./components/ui/Skeleton";
@@ -15,11 +15,52 @@ import Subscription from "./pages/Subscription";
 import HowToPay from "./pages/HowToPay";
 import Admin from "./pages/Admin";
 import Card from "./components/ui/Card";
+import DesktopShell from "./layouts/DesktopShell";
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/wallet/:id" element={<WalletDetail />} />
+      <Route path="/add-transaction" element={<AddTransaction />} />
+      <Route path="/transfer" element={<Transfer />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/shared" element={<SharedWallets />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/subscription" element={<Subscription />} />
+      <Route path="/how-to-pay" element={<HowToPay />} />
+      <Route path="/admin" element={<Admin />} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+
+function AppViewportFrame({ desktopMode }) {
+  const location = useLocation();
+  const isAdminRoute = location.pathname?.startsWith("/admin");
+  const isDesktopApp = desktopMode && !isAdminRoute;
+
+  if (isDesktopApp) {
+    return (
+      <DesktopShell>
+        <AppRoutes />
+      </DesktopShell>
+    );
+  }
+
+  return (
+    <div className={`${isAdminRoute ? "min-h-screen w-full max-w-7xl px-3 md:px-6 lg:px-8" : "min-h-screen max-w-md"} mx-auto relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-black`}>
+      <AppRoutes />
+      {!isAdminRoute ? <BottomNav /> : null}
+    </div>
+  );
+}
 
 export default function App() {
   const { login, loading } = useAuthStore();
   const { colorScheme } = useTelegram();
   const [sdkChecked, setSdkChecked] = useState(false);
+  const [desktopMode, setDesktopMode] = useState(false);
 
   const isTelegram = useMemo(() => !!window.Telegram?.WebApp, [sdkChecked]);
   const isAdminRoute = window.location?.pathname?.startsWith("/admin");
@@ -40,6 +81,14 @@ export default function App() {
   useEffect(() => {
     if (isTelegram) login();
   }, [login, isTelegram]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setDesktopMode(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   if (!sdkChecked) {
     return (
@@ -80,24 +129,9 @@ export default function App() {
   }
   return (
     <div className={colorScheme === "dark" ? "dark" : ""}>
-      <div className={`${isAdminRoute ? "min-h-screen w-full max-w-7xl px-3 md:px-6 lg:px-8" : "min-h-screen max-w-md"} mx-auto relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-black`}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/wallet/:id" element={<WalletDetail />} />
-            <Route path="/add-transaction" element={<AddTransaction />} />
-            <Route path="/transfer" element={<Transfer />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/shared" element={<SharedWallets />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/subscription" element={<Subscription />} />
-            <Route path="/how-to-pay" element={<HowToPay />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-          {!isAdminRoute ? <BottomNav /> : null}
-        </BrowserRouter>
-      </div>
+      <BrowserRouter>
+        <AppViewportFrame desktopMode={desktopMode} />
+      </BrowserRouter>
     </div>
   );
 }

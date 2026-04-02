@@ -85,12 +85,12 @@ export default function AddTransaction() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-3">
-      <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("transaction.add_title")}</h1>
+    <div className="page-shell">
+      <h1 className="page-title">{t("transaction.add_title")}</h1>
       {loading ? (
         <Skeleton className="h-60" />
       ) : (
-        <Card className="space-y-4 border-amber-500/20 bg-neutral-950/80">
+        <Card className="space-y-4 border-amber-500/20 bg-neutral-950/80 lg:max-w-3xl" density="comfortable">
           {error && <div className="rounded-xl border border-rose-500/35 bg-rose-950/30 p-3 text-sm text-rose-200">{error}</div>}
           <div>
             <p className="label mb-2">{t("transfer.select_wallet")}</p>

@@ -275,8 +275,8 @@ export default function Admin() {
   };
 
   return (
-    <div className="pb-10 pt-6 px-2 md:px-4 lg:px-6 space-y-5 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("admin.title")}</h1>
+    <div className="page-shell max-w-none pb-10">
+      <h1 className="page-title">{t("admin.title")}</h1>
 
       {!adminAuthed ? (
         <Card className="space-y-3 max-w-md">
@@ -300,7 +300,7 @@ export default function Admin() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/20 bg-neutral-950/95 p-2 backdrop-blur">
             <div className="flex flex-wrap gap-2">
               <Button variant={tab === "settings" ? "primary" : "secondary"} size="sm" onClick={() => setTab("settings")}>
                 {t("admin.tabs.settings")}
@@ -445,7 +445,7 @@ export default function Admin() {
             </Card>
             </div>
           ) : tab === "users" ? (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-3 xl:grid-cols-2">
               {users.map((u) => (
                 <Card key={u.id} className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -483,7 +483,7 @@ export default function Admin() {
                 </select>
               </div>
               <Button onClick={createCategory} disabled={saving} className="w-full">{t("wallet.add")}</Button>
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
                 {categories.map((cat) => (
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
