@@ -68,7 +68,7 @@ create table transactions (
   id uuid primary key default gen_random_uuid(),
   wallet_id uuid references wallets(id) on delete cascade,
   user_id uuid references users(id),
-  type text check (type in ('income','expense')) not null,
+  type text check (type in ('income','expense','transfer_in','transfer_out')) not null,
   amount numeric(20,4) not null check (amount > 0),
   category_id uuid references categories(id),
   note text,

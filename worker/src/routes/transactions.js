@@ -2,6 +2,16 @@ import { Router } from "itty-router";
 
 const router = Router({ base: "/api/transactions" });
 
+const TX_TYPES = new Set(["income", "expense", "transfer_in", "transfer_out"]);
+
+/** Positive delta increases wallet balance (income-like); negative decreases (expense-like). */
+function balanceDeltaForType(type, amount) {
+  const a = Number(amount);
+  if (type === "income" || type === "transfer_in") return a;
+  if (type === "expense" || type === "transfer_out") return -a;
+  return 0;
+}
+
 function precisionByCurrency(currency) {
   return currency === "LAK" ? 0 : 2;
 }
@@ -90,8 +100,11 @@ router.post("/", async (req) => {
       .single();
     if (!member || member.permission !== "editor") return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  if (!TX_TYPES.has(body.type)) return Response.json({ error: "invalid_type" }, { status: 400 });
   const amount = normalizeAmount(body.amount, wallet.currency);
   if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
+  const isTransfer = body.type === "transfer_in" || body.type === "transfer_out";
+  const category_id = isTransfer ? null : body.category_id || null;
   const { data: tx, error } = await supabase
     .from("transactions")
     .insert({
@@ -99,14 +112,14 @@ router.post("/", async (req) => {
       user_id: user.id,
       type: body.type,
       amount,
-      category_id: body.category_id || null,
+      category_id,
       note: body.note || null,
       transaction_date: body.transaction_date || new Date().toISOString().slice(0, 10),
     })
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
-  const delta = body.type === "income" ? amount : -amount;
+  const delta = balanceDeltaForType(body.type, amount);
   await supabase.rpc("increment_balance", { wallet_id: body.wallet_id, delta });
   return Response.json({ transaction: tx }, { status: 201 });
 });
@@ -119,16 +132,20 @@ router.patch("/:id", async (req) => {
   const canEdit = await canEditWallet(supabase, old.wallet_id, user.id);
   if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
   const nextType = body.type || old.type;
+  if (!TX_TYPES.has(nextType)) return Response.json({ error: "invalid_type" }, { status: 400 });
   const nextDate = body.transaction_date || old.transaction_date;
   const amount = normalizeAmount(body.amount ?? old.amount, old.wallet?.currency);
   if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: "invalid_amount" }, { status: 400 });
+  const nextIsTransfer = nextType === "transfer_in" || nextType === "transfer_out";
+  const nextCategory =
+    nextIsTransfer ? null : body.category_id !== undefined ? body.category_id : old.category_id ?? null;
 
   const { data, error } = await supabase
     .from("transactions")
     .update({
       type: nextType,
       amount,
-      category_id: body.category_id ?? old.category_id ?? null,
+      category_id: nextCategory,
       note: body.note ?? old.note ?? null,
       transaction_date: nextDate,
       updated_at: new Date().toISOString(),
@@ -137,8 +154,8 @@ router.patch("/:id", async (req) => {
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
-  const oldDelta = old.type === "income" ? -Number(old.amount) : Number(old.amount);
-  const newDelta = nextType === "income" ? amount : -amount;
+  const oldDelta = -balanceDeltaForType(old.type, old.amount);
+  const newDelta = balanceDeltaForType(nextType, amount);
   await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: oldDelta });
   await supabase.rpc("increment_balance", { wallet_id: old.wallet_id, delta: newDelta });
   return Response.json({ transaction: data });
@@ -150,7 +167,7 @@ router.delete("/:id", async (req) => {
   if (!tx) return Response.json({ error: "Not found" }, { status: 404 });
   const canEdit = await canEditWallet(supabase, tx.wallet_id, user.id);
   if (!canEdit) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const delta = tx.type === "income" ? -Number(tx.amount) : Number(tx.amount);
+  const delta = -balanceDeltaForType(tx.type, tx.amount);
   await supabase.rpc("increment_balance", { wallet_id: tx.wallet_id, delta });
   await supabase.from("transactions").delete().eq("id", params.id);
   return Response.json({ success: true });

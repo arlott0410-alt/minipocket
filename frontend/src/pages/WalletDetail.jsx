@@ -7,7 +7,7 @@ import TransactionList from "../components/transaction/TransactionList";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
-import Select from "../components/ui/Select";
+import TransactionTypeSelect from "../components/transaction/TransactionTypeSelect";
 import { useAuthStore } from "../store/authStore";
 import { useTranslation } from "react-i18next";
 import { formatAmountInput, formatDisplayAmount, parseAmountInput, precisionByCurrency } from "../lib/amount";
@@ -58,12 +58,13 @@ export default function WalletDetail() {
     }
     try {
       setError("");
+      const isTransfer = txForm.type === "transfer_in" || txForm.type === "transfer_out";
       await api.updateTransaction(editingTx.id, {
         type: txForm.type,
         amount: amountNumber,
         note: txForm.note,
         transaction_date: txForm.transaction_date,
-        category_id: editingTx.category_id || null,
+        category_id: isTransfer ? null : editingTx.category_id || null,
       });
       setEditingTx(null);
       await load();
@@ -129,10 +130,7 @@ export default function WalletDetail() {
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-amber-100">{t("transaction.edit_title")}</h3>
           {error ? <p className="rounded-lg border border-rose-500/40 bg-rose-900/20 p-2 text-xs text-rose-200">{error}</p> : null}
-          <Select value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))}>
-            <option value="income">{t("transaction.type_income")}</option>
-            <option value="expense">{t("transaction.type_expense")}</option>
-          </Select>
+          <TransactionTypeSelect value={txForm.type} onChange={(e) => setTxForm((s) => ({ ...s, type: e.target.value }))} />
           <Input
             type="text"
             inputMode="decimal"
