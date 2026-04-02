@@ -143,13 +143,27 @@ router.get("/payments", async (req) => {
 });
 
 router.get("/audit-logs", async (req) => {
+  const rawLimit = Number(req.query?.limit || 10);
+  const rawOffset = Number(req.query?.offset || 0);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 10;
+  const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
+
   const { data, error } = await req.supabase
     .from("admin_audit_logs")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(offset, offset + limit);
   if (error) return Response.json({ error: error.message }, { status: 400 });
-  return Response.json({ logs: data || [] });
+  const rows = data || [];
+  const hasMore = rows.length > limit;
+  const logs = hasMore ? rows.slice(0, limit) : rows;
+  return Response.json({
+    logs,
+    limit,
+    offset,
+    next_offset: offset + logs.length,
+    has_more: hasMore,
+  });
 });
 
 router.get("/broadcast-logs", async (req) => {

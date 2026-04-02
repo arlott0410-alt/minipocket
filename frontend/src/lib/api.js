@@ -60,7 +60,8 @@ export const api = {
   adminSaveSettings: (body) => request("/api/admin/settings", { method: "POST", body }),
   adminGetUsers: () => request("/api/admin/users"),
   adminUpdateUser: (id, body) => request(`/api/admin/users/${id}`, { method: "PATCH", body }),
-  adminGetAuditLogs: () => request("/api/admin/audit-logs"),
+  adminGetAuditLogs: ({ limit = 10, offset = 0 } = {}) =>
+    request(`/api/admin/audit-logs?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`),
   adminSendBroadcast: (body) => request("/api/admin/broadcast", { method: "POST", body }),
   adminGetBroadcastLogs: () => request("/api/admin/broadcast-logs"),
   adminGetCurrencies: () => request("/api/admin/currencies"),

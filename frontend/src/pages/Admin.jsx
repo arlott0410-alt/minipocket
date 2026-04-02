@@ -48,6 +48,9 @@ export default function Admin() {
     sort_order: 0,
   });
   const [logs, setLogs] = useState([]);
+  const [auditOffset, setAuditOffset] = useState(0);
+  const [auditHasMore, setAuditHasMore] = useState(false);
+  const [loadingMoreAudit, setLoadingMoreAudit] = useState(false);
   const [broadcastLogs, setBroadcastLogs] = useState([]);
   const [broadcastResult, setBroadcastResult] = useState(null);
   const [broadcastForm, setBroadcastForm] = useState({
@@ -91,14 +94,32 @@ export default function Admin() {
         image_url: prev.image_url || (settingMap.broadcast_image_url || ""),
       }));
       if (tab === "audit") {
-        const l = await api.adminGetAuditLogs();
+        const l = await api.adminGetAuditLogs({ limit: 10, offset: 0 });
         setLogs(l.logs || []);
+        setAuditOffset(l.next_offset || (l.logs || []).length || 0);
+        setAuditHasMore(Boolean(l.has_more));
       }
       setError("");
     } catch {
       setError(t("admin.errors.forbidden"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreAuditLogs = async () => {
+    if (loadingMoreAudit || !auditHasMore) return;
+    setLoadingMoreAudit(true);
+    setError("");
+    try {
+      const l = await api.adminGetAuditLogs({ limit: 10, offset: auditOffset });
+      setLogs((prev) => [...prev, ...(l.logs || [])]);
+      setAuditOffset(l.next_offset || auditOffset);
+      setAuditHasMore(Boolean(l.has_more));
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setLoadingMoreAudit(false);
     }
   };
 
@@ -497,6 +518,11 @@ export default function Admin() {
                       <p className="mt-1 text-xs text-amber-200/70">{log.admin_email}</p>
                     </div>
                   ))}
+                  {auditHasMore ? (
+                    <Button variant="secondary" className="w-full" disabled={loadingMoreAudit} onClick={loadMoreAuditLogs}>
+                      {loadingMoreAudit ? t("admin.audit.loading_more") : t("admin.audit.load_more")}
+                    </Button>
+                  ) : null}
                 </div>
               )}
             </Card>
