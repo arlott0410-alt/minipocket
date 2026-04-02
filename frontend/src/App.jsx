@@ -80,7 +80,7 @@ export default function App() {
   }
   return (
     <div className={colorScheme === "dark" ? "dark" : ""}>
-      <div className="min-h-screen max-w-md mx-auto relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-black">
+      <div className={`${isAdminRoute ? "min-h-screen w-full max-w-7xl px-3 md:px-6 lg:px-8" : "min-h-screen max-w-md"} mx-auto relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-black`}>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -95,7 +95,7 @@ export default function App() {
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-          <BottomNav />
+          {!isAdminRoute ? <BottomNav /> : null}
         </BrowserRouter>
       </div>
     </div>

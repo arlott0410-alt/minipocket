@@ -254,11 +254,11 @@ export default function Admin() {
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
+    <div className="pb-10 pt-6 px-2 md:px-4 lg:px-6 space-y-5 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold tracking-tight text-amber-100">{t("admin.title")}</h1>
 
       {!adminAuthed ? (
-        <Card className="space-y-3">
+        <Card className="space-y-3 max-w-md">
           <p className="label">{t("admin.login.title")}</p>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("admin.login.email")} />
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("admin.login.password")} />
@@ -279,8 +279,8 @@ export default function Admin() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant={tab === "settings" ? "primary" : "secondary"} size="sm" onClick={() => setTab("settings")}>
                 {t("admin.tabs.settings")}
               </Button>
@@ -307,7 +307,8 @@ export default function Admin() {
           </div>
 
           {tab === "settings" ? (
-            <Card className="space-y-3">
+            <div className="grid gap-4 lg:grid-cols-5">
+              <Card className="space-y-3 lg:col-span-3">
               <p className="section-title">{t("admin.settings_title")}</p>
               {Object.entries(settings).filter(([key]) => !HIDDEN_SETTING_KEYS.has(key)).map(([key, value]) => (
                 <div key={key} className="space-y-1">
@@ -354,7 +355,12 @@ export default function Admin() {
                 </div>
               )}
 
-              <div className="mt-2 rounded-2xl border border-amber-500/25 bg-neutral-900/50 p-3 space-y-3">
+              <Button onClick={save} className="w-full" disabled={saving}>
+                {saving ? t("admin.saving") : t("common.save")}
+              </Button>
+            </Card>
+
+            <Card className="mt-0 rounded-2xl border border-amber-500/25 bg-neutral-900/50 p-3 space-y-3 lg:col-span-2 lg:sticky lg:top-4 h-fit">
                 <p className="section-title">{t("admin.broadcast.title")}</p>
                 <p className="text-xs text-amber-200/70">{t("admin.broadcast.hint")}</p>
                 <div className="space-y-1">
@@ -415,14 +421,10 @@ export default function Admin() {
                     ))
                   )}
                 </div>
-              </div>
-
-              <Button onClick={save} className="w-full" disabled={saving}>
-                {saving ? t("admin.saving") : t("common.save")}
-              </Button>
             </Card>
+            </div>
           ) : tab === "users" ? (
-            <div className="space-y-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               {users.map((u) => (
                 <Card key={u.id} className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -444,7 +446,7 @@ export default function Admin() {
           ) : tab === "categories" ? (
             <Card className="space-y-4">
               <p className="section-title text-amber-100">{t("admin.categories.title")}</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <Input placeholder={t("admin.categories.name_lo")} value={newCategory.name_lo} onChange={(e) => setNewCategory((s) => ({ ...s, name_lo: e.target.value }))} />
                 <Input placeholder={t("admin.categories.name_th")} value={newCategory.name_th} onChange={(e) => setNewCategory((s) => ({ ...s, name_th: e.target.value }))} />
                 <Input placeholder={t("admin.categories.name_en")} value={newCategory.name_en} onChange={(e) => setNewCategory((s) => ({ ...s, name_en: e.target.value }))} />
@@ -460,7 +462,7 @@ export default function Admin() {
                 </select>
               </div>
               <Button onClick={createCategory} disabled={saving} className="w-full">{t("wallet.add")}</Button>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
                 {categories.map((cat) => (
                   <div key={cat.id} className="surface-muted p-3 flex items-center justify-between">
                     <div>
