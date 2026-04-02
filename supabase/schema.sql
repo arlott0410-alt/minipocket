@@ -102,12 +102,28 @@ create table wallet_share_activity_log (
 
 create index idx_wallet_share_activity_wallet_created on wallet_share_activity_log(wallet_id, created_at desc);
 
+create table admin_broadcast_logs (
+  id uuid primary key default gen_random_uuid(),
+  admin_email text not null,
+  target text not null check (target in ('all', 'paid', 'free')),
+  message text not null,
+  image_url text,
+  total_users int not null default 0,
+  sent_count int not null default 0,
+  failed_count int not null default 0,
+  failed_samples jsonb not null default '[]',
+  created_at timestamptz not null default now()
+);
+
+create index idx_admin_broadcast_logs_created_at on admin_broadcast_logs(created_at desc);
+
 alter table users enable row level security;
 alter table wallets enable row level security;
 alter table wallet_members enable row level security;
 alter table transactions enable row level security;
 alter table transfers enable row level security;
 alter table wallet_share_activity_log enable row level security;
+alter table admin_broadcast_logs enable row level security;
 
 insert into currencies (code, name, symbol, sort_order) values
   ('LAK', 'ກີບລາວ', '₭', 1),

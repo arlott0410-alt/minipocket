@@ -1,6 +1,7 @@
 import { Router } from "itty-router";
 
 const router = Router({ base: "/api/admin" });
+const TELEGRAM_API_BASE = "https://api.telegram.org";
 
 async function logAdminAction(req, action, payload = {}) {
   try {
@@ -12,6 +13,46 @@ async function logAdminAction(req, action, payload = {}) {
   } catch {
     // Keep admin operations non-blocking even if audit table migration is pending.
   }
+}
+
+function safeText(value) {
+  return String(value || "").trim();
+}
+
+async function sendTelegramBroadcast(env, telegramId, { message, imageUrl }) {
+  const token = env.BOT_TOKEN;
+  if (!token) throw new Error("missing_bot_token");
+  const chatId = String(telegramId);
+  if (imageUrl) {
+    const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        photo: imageUrl,
+        caption: message || undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.ok === false) throw new Error(data?.description || "send_photo_failed");
+    return;
+  }
+
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      disable_web_page_preview: true,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data?.ok === false) throw new Error(data?.description || "send_message_failed");
+}
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 router.get("/settings", async (req) => {
@@ -109,6 +150,82 @@ router.get("/audit-logs", async (req) => {
     .limit(100);
   if (error) return Response.json({ error: error.message }, { status: 400 });
   return Response.json({ logs: data || [] });
+});
+
+router.get("/broadcast-logs", async (req) => {
+  const { data, error } = await req.supabase
+    .from("admin_broadcast_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  return Response.json({ logs: data || [] });
+});
+
+router.post("/broadcast", async (req, env) => {
+  const body = await req.json().catch(() => ({}));
+  const target = ["all", "paid", "free"].includes(body.target) ? body.target : "all";
+  const message = safeText(body.message);
+  const imageUrl = safeText(body.image_url);
+  if (!message) return Response.json({ error: "message_required" }, { status: 400 });
+
+  let query = req.supabase.from("users").select("telegram_id,is_paid").not("telegram_id", "is", null);
+  if (target === "paid") query = query.eq("is_paid", true);
+  if (target === "free") query = query.eq("is_paid", false);
+  const { data: users, error } = await query;
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+
+  const rows = (users || []).filter((u) => u.telegram_id);
+  let sentCount = 0;
+  let failedCount = 0;
+  const failedSamples = [];
+  const BATCH_SIZE = 20;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (u) => {
+        try {
+          await sendTelegramBroadcast(env, u.telegram_id, { message, imageUrl });
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, reason: e?.message || "send_failed", telegram_id: String(u.telegram_id) };
+        }
+      }),
+    );
+    for (const r of results) {
+      if (r.ok) sentCount += 1;
+      else {
+        failedCount += 1;
+        if (failedSamples.length < 10) failedSamples.push({ telegram_id: r.telegram_id, reason: r.reason });
+      }
+    }
+    if (i + BATCH_SIZE < rows.length) await sleep(150);
+  }
+
+  await req.supabase.from("admin_broadcast_logs").insert({
+    admin_email: req.admin?.email || "unknown",
+    target,
+    message,
+    image_url: imageUrl || null,
+    total_users: rows.length,
+    sent_count: sentCount,
+    failed_count: failedCount,
+    failed_samples: failedSamples,
+  });
+  await logAdminAction(req, "broadcast.send", {
+    target,
+    total_users: rows.length,
+    sent_count: sentCount,
+    failed_count: failedCount,
+  });
+
+  return Response.json({
+    success: true,
+    total_users: rows.length,
+    sent_count: sentCount,
+    failed_count: failedCount,
+    failed_samples: failedSamples,
+  });
 });
 
 router.patch("/payments/:id", async (req) => {

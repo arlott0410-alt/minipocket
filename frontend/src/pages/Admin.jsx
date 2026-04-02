@@ -27,6 +27,8 @@ const HIDDEN_SETTING_KEYS = new Set([
   "payment_account_number",
   "payment_account_name",
   "payment_instructions",
+  "broadcast_message",
+  "broadcast_image_url",
 ]);
 
 export default function Admin() {
@@ -46,6 +48,13 @@ export default function Admin() {
     sort_order: 0,
   });
   const [logs, setLogs] = useState([]);
+  const [broadcastLogs, setBroadcastLogs] = useState([]);
+  const [broadcastResult, setBroadcastResult] = useState(null);
+  const [broadcastForm, setBroadcastForm] = useState({
+    target: "all",
+    message: "",
+    image_url: "",
+  });
   const [tab, setTab] = useState("settings");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -65,14 +74,22 @@ export default function Admin() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [s, u, c] = await Promise.all([
+      const [s, u, c, b] = await Promise.all([
         api.adminGetSettings(),
         api.adminGetUsers(),
         api.adminGetCategories(),
+        api.adminGetBroadcastLogs(),
       ]);
-      setSettings(Object.fromEntries((s.settings || []).map((x) => [x.key, x.value])));
+      const settingMap = Object.fromEntries((s.settings || []).map((x) => [x.key, x.value]));
+      setSettings(settingMap);
       setUsers(u.users || []);
       setCategories(c.categories || []);
+      setBroadcastLogs(b.logs || []);
+      setBroadcastForm((prev) => ({
+        ...prev,
+        message: prev.message || (settingMap.broadcast_message || ""),
+        image_url: prev.image_url || (settingMap.broadcast_image_url || ""),
+      }));
       if (tab === "audit") {
         const l = await api.adminGetAuditLogs();
         setLogs(l.logs || []);
@@ -113,6 +130,39 @@ export default function Admin() {
       await loadDashboard();
     } catch (e) {
       setError(t("admin.errors.save_failed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendBroadcast = async () => {
+    const message = (broadcastForm.message || "").trim();
+    if (!message) {
+      setError(t("admin.broadcast.message_required"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setBroadcastResult(null);
+    try {
+      const res = await api.adminSendBroadcast({
+        target: broadcastForm.target,
+        message,
+        image_url: (broadcastForm.image_url || "").trim(),
+      });
+      setBroadcastResult(res);
+      setSettings((s) => ({
+        ...s,
+        broadcast_message: message,
+        broadcast_image_url: (broadcastForm.image_url || "").trim(),
+      }));
+      await api.adminSaveSettings({
+        broadcast_message: message,
+        broadcast_image_url: (broadcastForm.image_url || "").trim(),
+      });
+      await loadDashboard();
+    } catch (e) {
+      setError(e?.error || t("common.error"));
     } finally {
       setSaving(false);
     }
@@ -303,6 +353,70 @@ export default function Admin() {
                   {error}
                 </div>
               )}
+
+              <div className="mt-2 rounded-2xl border border-amber-500/25 bg-neutral-900/50 p-3 space-y-3">
+                <p className="section-title">{t("admin.broadcast.title")}</p>
+                <p className="text-xs text-amber-200/70">{t("admin.broadcast.hint")}</p>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">{t("admin.broadcast.target_label")}</label>
+                  <select
+                    value={broadcastForm.target}
+                    onChange={(e) => setBroadcastForm((s) => ({ ...s, target: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    <option value="all">{t("admin.broadcast.target_all")}</option>
+                    <option value="paid">{t("admin.broadcast.target_paid")}</option>
+                    <option value="free">{t("admin.broadcast.target_free")}</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">{t("admin.broadcast.message_label")}</label>
+                  <textarea
+                    value={broadcastForm.message}
+                    onChange={(e) => setBroadcastForm((s) => ({ ...s, message: e.target.value }))}
+                    rows={4}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    placeholder={t("admin.broadcast.message_placeholder")}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">{t("admin.broadcast.image_url_label")}</label>
+                  <Input
+                    value={broadcastForm.image_url}
+                    onChange={(e) => setBroadcastForm((s) => ({ ...s, image_url: e.target.value }))}
+                    placeholder="https://..."
+                  />
+                </div>
+                <Button onClick={sendBroadcast} disabled={saving} className="w-full">
+                  {saving ? t("admin.saving") : t("admin.broadcast.send")}
+                </Button>
+                {broadcastResult ? (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-xs text-emerald-200">
+                    {t("admin.broadcast.result", {
+                      total: broadcastResult.total_users || 0,
+                      sent: broadcastResult.sent_count || 0,
+                      failed: broadcastResult.failed_count || 0,
+                    })}
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <p className="label">{t("admin.broadcast.history_title")}</p>
+                  {(broadcastLogs || []).length === 0 ? (
+                    <p className="text-xs text-amber-200/70">{t("admin.broadcast.history_empty")}</p>
+                  ) : (
+                    (broadcastLogs || []).slice(0, 5).map((row) => (
+                      <div key={row.id} className="surface-muted p-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-amber-100">{row.target}</p>
+                          <p className="text-[11px] text-amber-200/70">{new Date(row.created_at).toLocaleString()}</p>
+                        </div>
+                        <p className="mt-1 text-[11px] text-amber-200/80">{t("admin.broadcast.result", { total: row.total_users, sent: row.sent_count, failed: row.failed_count })}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               <Button onClick={save} className="w-full" disabled={saving}>
                 {saving ? t("admin.saving") : t("common.save")}
               </Button>
